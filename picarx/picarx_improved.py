@@ -103,6 +103,9 @@ class Picarx(object):
         # --------- ultrasonic init ---------
         tring, echo= ultrasonic_pins
         self.ultrasonic = Ultrasonic(Pin(tring), Pin(echo))
+
+        # Make sure the motors stop
+        atexit.register(self.stop)
         
     def set_motor_speed(self, motor, speed):
         ''' set motor speed
@@ -279,7 +282,6 @@ class Picarx(object):
         else:
             raise ValueError("grayscale reference must be a 1*3 list")
     
-    atexit.register(stop)
 
 def forward_backward_test(px):
     px.forward(50)
