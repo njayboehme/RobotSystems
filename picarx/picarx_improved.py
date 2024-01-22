@@ -342,22 +342,22 @@ def run():
         print("Enter 1, 2, 3, 4, 5, or 6. ")
         usr_in = input()
         print()
-        if usr_in == 1:
+        if usr_in == '1':
             print("Forward backward test")
             forward_backward_test(px)
-        elif usr_in == 2:
+        elif usr_in == '2':
             print("Parallel park going right")
             parallel_park(px, False)
-        elif usr_in == 3:
+        elif usr_in == '3':
             print("Parallel park going left")
             parallel_park(px, True)
-        elif usr_in == 4:
+        elif usr_in == '4':
             print("Three point turn going right")
             three_point_turn(px, False)
-        elif usr_in == 5:
+        elif usr_in == '5':
             print("Three point turn going left")
             parallel_park(px, True)
-        elif usr_in == 6:
+        elif usr_in == '6':
             print("\n", "Breaking out of the run.")
             break
 
