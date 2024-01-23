@@ -333,8 +333,11 @@ def three_point_turn(px, is_right, angle, speed, rest_time):
     px.backward(speed)
     time.sleep(rest_time)
     px.stop()
-    px.set_dir_servo_angle(0)
 
+    px.set_dir_servo_angle(0)
+    px.forward(speed)
+    time.sleep(rest_time)
+    px.stop()
 
 def run():
     px = Picarx()
@@ -354,14 +357,14 @@ def run():
         elif usr_in == '4':
             print("Three point turn going right")
             angle = int(input("Enter turn angle "))
-            speed = int(input("Enter turn angle "))
-            run_time = int(input("Enter turn angle "))
+            speed = int(input("Enter speed "))
+            run_time = int(input("Enter run time "))
             three_point_turn(px, False, angle, speed, run_time)
         elif usr_in == '5':
             print("Three point turn going left")
             angle = int(input(" Enter turn angle "))
-            speed = int(input("Enter turn angle "))
-            run_time = int(input("Enter turn angle "))
+            speed = int(input("Enter speed "))
+            run_time = int(input("Enter run time "))
             parallel_park(px, True, angle, speed, run_time)
         elif usr_in == '6':
             print("\n", "Breaking out of the run.")
