@@ -295,7 +295,7 @@ def forward_backward_test(px):
     time.sleep(1)
     px.stop()
 
-def parallel_park(px, is_right, angle, speed=30, rest_time=1):
+def parallel_park(px, is_right, angle=25, speed=60, rest_time=1):
     turn_angle = angle
     if not is_right:
         turn_angle *= -1
@@ -315,24 +315,25 @@ def parallel_park(px, is_right, angle, speed=30, rest_time=1):
     px.set_dir_servo_angle(0)
     
 
-def three_point_turn(px, is_right, angle):
+def three_point_turn(px, is_right, angle, speed, rest_time):
     turn_angle = angle
     if not is_right:
         turn_angle *= -1
     px.set_dir_servo_angle(turn_angle)
-    px.backward(40)
-    time.sleep(0.5)
+    px.backward(speed)
+    time.sleep(rest_time)
     px.stop()
 
     px.set_dir_servo_angle(0)
-    px.forward(40)
-    time.sleep(0.5)
+    px.forward(speed)
+    time.sleep(rest_time)
     px.stop()
 
     px.set_dir_servo_angle(turn_angle)
-    px.backward(40)
-    time.sleep(0.5)
+    px.backward(speed)
+    time.sleep(rest_time)
     px.stop()
+    px.set_dir_servo_angle(0)
 
 
 def run():
@@ -345,23 +346,23 @@ def run():
             print("Forward backward test")
             forward_backward_test(px)
         elif usr_in == '2':
-            print("Parallel park going right")
-            angle = int(input("Enter turn angle "))
-            speed = int(input("Enter speed "))
-            rest_time = int(input("Enter motor run time "))
-            parallel_park(px, False, angle, speed, rest_time)
-        elif usr_in == '3':
             print("Parallel park going left")
-            angle = int(input("Enter turn angle "))
-            parallel_park(px, True, angle)
+            parallel_park(px, False)
+        elif usr_in == '3':
+            print("Parallel park going right")
+            parallel_park(px, True)
         elif usr_in == '4':
             print("Three point turn going right")
             angle = int(input("Enter turn angle "))
-            three_point_turn(px, False, angle)
+            speed = int(input("Enter turn angle "))
+            run_time = int(input("Enter turn angle "))
+            three_point_turn(px, False, angle, speed, run_time)
         elif usr_in == '5':
             print("Three point turn going left")
             angle = int(input(" Enter turn angle "))
-            parallel_park(px, True, angle)
+            speed = int(input("Enter turn angle "))
+            run_time = int(input("Enter turn angle "))
+            parallel_park(px, True, angle, speed, run_time)
         elif usr_in == '6':
             print("\n", "Breaking out of the run.")
             break
