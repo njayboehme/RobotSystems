@@ -295,7 +295,7 @@ def forward_backward_test(px):
     time.sleep(1)
     px.stop()
 
-def parallel_park(px, is_right, angle, speed=30, time=1):
+def parallel_park(px, is_right, angle, speed=30, rest_time=1):
     turn_angle = angle
     if not is_right:
         turn_angle *= -1
@@ -303,13 +303,13 @@ def parallel_park(px, is_right, angle, speed=30, time=1):
     px.set_dir_servo_angle(turn_angle)
     # Start backup
     px.backward(speed)
-    time.sleep(time)
+    time.sleep(rest_time)
     px.stop()
     # Rotate wheel the other way
     px.set_dir_servo_angle(-turn_angle)
     # Start the final backup
     px.backward(speed)
-    time.sleep(time)
+    time.sleep(rest_time)
     px.stop()
     # Straighten wheels
     px.set_dir_servo_angle(0)
@@ -348,8 +348,8 @@ def run():
             print("Parallel park going right")
             angle = int(input("Enter turn angle "))
             speed = int(input("Enter speed "))
-            time = int(input("Enter motor run time "))
-            parallel_park(px, False, angle, speed, time)
+            rest_time = int(input("Enter motor run time "))
+            parallel_park(px, False, angle, speed, rest_time)
         elif usr_in == '3':
             print("Parallel park going left")
             angle = int(input("Enter turn angle "))
