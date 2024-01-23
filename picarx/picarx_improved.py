@@ -220,6 +220,7 @@ class Picarx(object):
                 # self.set_motor_speed(1, -1*speed * outer)
                 # self.set_motor_speed(2, speed * inner)
         else:
+            logging.debug(f"Backward: Angle == 0, Speed: {speed}")
             self.set_motor_speed(1, -1*speed)
             self.set_motor_speed(2, speed)  
 
@@ -239,7 +240,7 @@ class Picarx(object):
                 self.set_motor_speed(1, speed)
                 self.set_motor_speed(2, -1*speed * power_scale)
         else:
-            logging.debug(f"Backward: Angle == 0, Speed: {speed}, power_scale: {power_scale}")
+            logging.debug(f"Backward: Angle == 0, Speed: {speed}")
             self.set_motor_speed(1, speed)
             self.set_motor_speed(2, -1*speed)                  
 
