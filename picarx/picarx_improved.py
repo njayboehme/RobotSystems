@@ -231,12 +231,15 @@ class Picarx(object):
                 abs_current_angle = self.DIR_MAX
             power_scale = (100 - abs_current_angle) / 100.0
             if (current_angle / abs_current_angle) > 0:
+                logging.debug(f"Forward: Angle > 0, Speed: {speed}, power_scale: {power_scale}")
                 self.set_motor_speed(1, 1*speed * power_scale)
                 self.set_motor_speed(2, -speed) 
             else:
+                logging.debug(f"Forward: Angle < 0, Speed: {speed}, power_scale: {power_scale}")
                 self.set_motor_speed(1, speed)
                 self.set_motor_speed(2, -1*speed * power_scale)
         else:
+            logging.debug(f"Backward: Angle == 0, Speed: {speed}, power_scale: {power_scale}")
             self.set_motor_speed(1, speed)
             self.set_motor_speed(2, -1*speed)                  
 
@@ -291,51 +294,44 @@ def forward_backward_test(px):
     time.sleep(1)
     px.stop()
 
-def parallel_park(px, is_right):
-    if is_right:
-        # Turn wheels left because parallel parking
-        px.set_dir_servo_angle(-25)
-    else:
-        # Turn wheels right
-        px.set_dir_servo_angle(25)
-    # Backup
+def parallel_park(px, is_right, angle, speed=30, time=1):
+    turn_angle = angle
+    if not is_right:
+        turn_angle *= -1
+    # Initial Rotate
+    px.set_dir_servo_angle(turn_angle)
+    # Start backup
+    px.backward(speed)
+    time.sleep(time)
+    px.stop()
+    # Rotate wheel the other way
+    px.set_dir_servo_angle(-turn_angle)
+    # Start the final backup
+    px.backward(speed)
+    time.sleep(time)
+    px.stop()
+    # Straighten wheels
+    px.set_dir_servo_angle(0)
+    
+
+def three_point_turn(px, is_right, angle):
+    turn_angle = angle
+    if not is_right:
+        turn_angle *= -1
+    px.set_dir_servo_angle(turn_angle)
     px.backward(40)
     time.sleep(0.5)
     px.stop()
-    # Rotate wheel
-    px.set_dir_servo_angle(-25)
 
-def three_point_turn(px, is_right):
-    if is_right:
-        px.set_dir_servo_angle(25)
-        px.backward(40)
-        time.sleep(0.5)
-        px.stop()
+    px.set_dir_servo_angle(0)
+    px.forward(40)
+    time.sleep(0.5)
+    px.stop()
 
-        px.set_dir_servo_angle(0)
-        px.forward(40)
-        time.sleep(0.5)
-        px.stop()
-
-        px.set_dir_servo_angle(25)
-        px.backward(40)
-        time.sleep(0.5)
-        px.stop()
-    else:
-        px.set_dir_servo_angle(-25)
-        px.backward(40)
-        time.sleep(0.5)
-        px.stop()
-
-        px.set_dir_servo_angle(0)
-        px.forward(40)
-        time.sleep(0.5)
-        px.stop()
-
-        px.set_dir_servo_angle(-25)
-        px.backward(40)
-        time.sleep(0.5)
-        px.stop()
+    px.set_dir_servo_angle(turn_angle)
+    px.backward(40)
+    time.sleep(0.5)
+    px.stop()
 
 
 def run():
@@ -349,16 +345,22 @@ def run():
             forward_backward_test(px)
         elif usr_in == '2':
             print("Parallel park going right")
-            parallel_park(px, False)
+            angle = int(input("Enter turn angle "))
+            speed = int(input("Enter speed "))
+            time = int(input("Enter motor run time "))
+            parallel_park(px, False, angle, speed, time)
         elif usr_in == '3':
             print("Parallel park going left")
-            parallel_park(px, True)
+            angle = int(input("Enter turn angle "))
+            parallel_park(px, True, angle)
         elif usr_in == '4':
             print("Three point turn going right")
-            three_point_turn(px, False)
+            angle = int(input("Enter turn angle "))
+            three_point_turn(px, False, angle)
         elif usr_in == '5':
             print("Three point turn going left")
-            parallel_park(px, True)
+            angle = int(input(" Enter turn angle "))
+            parallel_park(px, True, angle)
         elif usr_in == '6':
             print("\n", "Breaking out of the run.")
             break
