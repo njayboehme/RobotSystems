@@ -315,7 +315,7 @@ def parallel_park(px, is_right, angle=25, speed=60, rest_time=1):
     px.set_dir_servo_angle(0)
     
 
-def three_point_turn(px, is_right, angle, speed, rest_time):
+def three_point_turn(px, is_right, angle=25, speed=50, rest_time=1.5):
     turn_angle = angle
     if not is_right:
         turn_angle *= -1
@@ -356,16 +356,10 @@ def run():
             parallel_park(px, True)
         elif usr_in == '4':
             print("Three point turn going right")
-            angle = int(input("Enter turn angle "))
-            speed = int(input("Enter speed "))
-            run_time = float(input("Enter run time "))
-            three_point_turn(px, False, angle, speed, run_time)
+            three_point_turn(px, False)
         elif usr_in == '5':
             print("Three point turn going left")
-            angle = int(input(" Enter turn angle "))
-            speed = int(input("Enter speed "))
-            run_time = float(input("Enter run time "))
-            three_point_turn(px, True, angle, speed, run_time)
+            three_point_turn(px, True)
         elif usr_in == '6':
             print("\n", "Breaking out of the run.")
             break
