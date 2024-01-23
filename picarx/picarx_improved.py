@@ -358,14 +358,14 @@ def run():
             print("Three point turn going right")
             angle = int(input("Enter turn angle "))
             speed = int(input("Enter speed "))
-            run_time = int(input("Enter run time "))
+            run_time = float(input("Enter run time "))
             three_point_turn(px, False, angle, speed, run_time)
         elif usr_in == '5':
             print("Three point turn going left")
             angle = int(input(" Enter turn angle "))
             speed = int(input("Enter speed "))
-            run_time = int(input("Enter run time "))
-            parallel_park(px, True, angle, speed, run_time)
+            run_time = float(input("Enter run time "))
+            three_point_turn(px, True, angle, speed, run_time)
         elif usr_in == '6':
             print("\n", "Breaking out of the run.")
             break
