@@ -1,7 +1,17 @@
 #!/usr/bin/env python3
 import logging
 import time
+import math
+import os
+from time import sleep
 
+timer = [
+    {
+        "arr": 0
+    }
+] * 4
+
+#As is from sunfounder
 class _Basic_class(object):
     _class_name = '_Basic_class'
     DEBUG_LEVELS = {'debug': logging.DEBUG,
@@ -55,12 +65,122 @@ class _Basic_class(object):
     def map(self, x, in_min, in_max, out_min, out_max):
         return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min
 
+#Modified with ChatGPT
+class Pin(_Basic_class):
+    OUT = "OUT"
+    IN = "IN"
+    IRQ_FALLING = "IRQ_FALLING"
+    IRQ_RISING = "IRQ_RISING"
+    IRQ_RISING_FALLING = "IRQ_RISING_FALLING"
+    PULL_UP = "PULL_UP"
+    PULL_DOWN = "PULL_DOWN"
+    PULL_NONE = "PULL_NONE"
+
+    def __init__(self, *value):
+        self._pin = None
+        self._mode = None
+        self._pull = None
+        self._board_name = None
+
+        if len(value) > 0:
+            pin = value[0]
+        if len(value) > 1:
+            mode = value[1]
+        else:
+            mode = None
+        if len(value) > 2:
+            setup = value[2]
+        else:
+            setup = None
+
+        if isinstance(pin, str):
+            self._board_name = pin
+        elif isinstance(pin, int):
+            self._pin = pin
+        else:
+            self._error('Pin should be either a string or an integer, not %s' % type(pin))
+
+        self._value = 0
+        self.init(mode, pull=setup)
+
+    def init(self, mode, pull=None):
+        self._pull = pull
+        self._mode = mode
+
+    def value(self, *value):
+        if len(value) == 0:
+            if self._mode in [None, self.OUT]:
+                self.mode(self.IN)
+            result = self._value
+            self._debug("read pin %s: %s" % (self._pin, result))
+            return result
+        else:
+            value = value[0]
+            if self._mode in [None, self.IN]:
+                self.mode(self.OUT)
+            self._value = value
+            return value
+
+    def on(self):
+        return self.value(1)
+
+    def off(self):
+        return self.value(0)
+
+    def high(self):
+        return self.on()
+
+    def low(self):
+        return self.off()
+
+    def mode(self, *value):
+        if len(value) == 0:
+            return (self._mode, self._pull)
+        else:
+            self._mode = value[0]
+            if len(value) == 1:
+                pass
+            elif len(value) == 2:
+                self._pull = value[1]
+
+    def pull(self, *value):
+        return self._pull
+
+    def irq(self, handler=None, trigger=None, bouncetime=200):
+        # For simplicity, do nothing in the debug version
+        pass
+
+    def name(self):
+        return "DebugGPIO%s" % self._pin
+
+    def names(self):
+        return [self.name, self._board_name]
+
+    class cpu:
+        GPIO17 = 17
+        GPIO18 = 18
+        GPIO27 = 27
+        GPIO22 = 22
+        GPIO23 = 23
+        GPIO24 = 24
+        GPIO25 = 25
+        GPIO26 = 26
+        GPIO4 = 4
+        GPIO5 = 5
+        GPIO6 = 6
+        GPIO12 = 12
+        GPIO13 = 13
+        GPIO19 = 19
+        GPIO16 = 16
+        GPIO26 = 26
+        GPIO20 = 20
+        GPIO21 = 21
+
+        def __init__(self):
+            pass
 
 
-##########################################################################################################
-
-from smbus import SMBus
-
+#As is from sunfounder
 def _retry_wrapper(func):
     def wrapper(self, *arg, **kwargs):
         for i in range(self.RETRY):
@@ -73,6 +193,33 @@ def _retry_wrapper(func):
             return False
     return wrapper
 
+#Made using ChatGPT
+class DummySMBus:
+    def write_byte(self, addr, data):
+        #print(f"DummySMBus: Write byte - Address: 0x{addr:02X}, Data: 0x{data:02X}")
+        return 0  # Return value for simulation
+
+    def write_byte_data(self, addr, reg, data):
+        #print(f"DummySMBus: Write byte data - Address: 0x{addr:02X}, Register: 0x{reg:02X}, Data: 0x{data:02X}")
+        return 0  # Return value for simulation
+
+    def write_word_data(self, addr, reg, data):
+        #print(f"DummySMBus: Write word data - Address: 0x{addr:02X}, Register: 0x{reg:02X}, Data: 0x{data:04X}")
+        return 0  # Return value for simulation
+
+    def write_i2c_block_data(self, addr, reg, data):
+        #print(f"DummySMBus: Write i2c block data - Address: 0x{addr:02X}, Register: 0x{reg:02X}, Data: {data}")
+        return 0  # Return value for simulation
+
+    def read_byte(self, addr):
+        #print(f"DummySMBus: Read byte - Address: 0x{addr:02X}")
+        return 0xFF  # Return value for simulation
+
+    def read_i2c_block_data(self, addr, reg, num):
+        #print(f"DummySMBus: Read i2c block data - Address: 0x{addr:02X}, Register: 0x{reg:02X}, Num: {num}")
+        return [0xFF] * num  # Return value for simulation
+
+#Modified slightly to use the ChatGPT-generated DummySMBus class
 class I2C(_Basic_class):
     MASTER = 0
     SLAVE  = 1
@@ -81,37 +228,37 @@ class I2C(_Basic_class):
     def __init__(self, *args, **kargs):     # *args表示位置参数（形式参数），可无，； **kargs表示默认值参数，可无。
         super().__init__()
         self._bus = 1
-        self._smbus = SMBus(self._bus)
+        self._smbus = DummySMBus()
 
     @_retry_wrapper
     def _i2c_write_byte(self, addr, data):   # i2C 写系列函数
-        self._debug("_i2c_write_byte: [0x{:02X}] [0x{:02X}]".format(addr, data))
+        #self._debug("_i2c_write_byte: [0x{:02X}] [0x{:02X}]".format(addr, data))
         result = self._smbus.write_byte(addr, data)
         return result
             
     @_retry_wrapper
     def _i2c_write_byte_data(self, addr, reg, data):
-        self._debug("_i2c_write_byte_data: [0x{:02X}] [0x{:02X}] [0x{:02X}]".format(addr, reg, data))
+        #self._debug("_i2c_write_byte_data: [0x{:02X}] [0x{:02X}] [0x{:02X}]".format(addr, reg, data))
         return self._smbus.write_byte_data(addr, reg, data)
     
     @_retry_wrapper
     def _i2c_write_word_data(self, addr, reg, data):
-        self._debug("_i2c_write_word_data: [0x{:02X}] [0x{:02X}] [0x{:04X}]".format(addr, reg, data))
+        #self._debug("_i2c_write_word_data: [0x{:02X}] [0x{:02X}] [0x{:04X}]".format(addr, reg, data))
         return self._smbus.write_word_data(addr, reg, data)
     
     @_retry_wrapper
     def _i2c_write_i2c_block_data(self, addr, reg, data):
-        self._debug("_i2c_write_i2c_block_data: [0x{:02X}] [0x{:02X}] {}".format(addr, reg, data))
+        #self._debug("_i2c_write_i2c_block_data: [0x{:02X}] [0x{:02X}] {}".format(addr, reg, data))
         return self._smbus.write_i2c_block_data(addr, reg, data)
     
     @_retry_wrapper
     def _i2c_read_byte(self, addr):   # i2C 读系列函数
-        self._debug("_i2c_read_byte: [0x{:02X}]".format(addr))
+        #self._debug("_i2c_read_byte: [0x{:02X}]".format(addr))
         return self._smbus.read_byte(addr)
 
     @_retry_wrapper
     def _i2c_read_i2c_block_data(self, addr, reg, num):
-        self._debug("_i2c_read_i2c_block_data: [0x{:02X}] [0x{:02X}] [{}]".format(addr, reg, num))
+        #self._debug("_i2c_read_i2c_block_data: [0x{:02X}] [0x{:02X}] [{}]".format(addr, reg, num))
         return self._smbus.read_i2c_block_data(addr, reg, num)
 
     @_retry_wrapper
@@ -127,7 +274,7 @@ class I2C(_Basic_class):
         _, output = self.run_command(cmd)          # 调用basic中的方法，在linux中运行cmd指令，并返回运行后的内容
         
         outputs = output.split('\n')[1:]        # 以回车符为分隔符，分割第二行之后的所有行
-        self._debug("outputs")
+        #self._debug("outputs")
         addresses = []
         for tmp_addresses in outputs:
             if tmp_addresses == "":
@@ -137,7 +284,7 @@ class I2C(_Basic_class):
             for address in tmp_addresses:
                 if address != '--':
                     addresses.append(int(address, 16))
-        self._debug("Conneceted i2c device: %s"%addresses)                   # append以列表的方式添加address到addresses中
+        #self._debug("Conneceted i2c device: %s"%addresses)                   # append以列表的方式添加address到addresses中
         return addresses
 
 
@@ -225,223 +372,7 @@ class I2C(_Basic_class):
     def writeto_mem(self, addr, memaddr, data):
         self.mem_write(data, addr, memaddr)
 
-
-
-##################################################################################################
-
-import RPi.GPIO as GPIO
-
-class Pin(_Basic_class):
-    OUT = GPIO.OUT
-    IN = GPIO.IN
-    IRQ_FALLING = GPIO.FALLING
-    IRQ_RISING = GPIO.RISING
-    IRQ_RISING_FALLING = GPIO.BOTH
-    PULL_UP = GPIO.PUD_UP
-    PULL_DOWN = GPIO.PUD_DOWN
-    PULL_NONE = None
-
-    _dict = {
-        "BOARD_TYPE": 12,
-    }
-
-    _dict_1 = {
-        "D0":  17,
-        "D1":  18,
-        "D2":  27,
-        "D3":  22,
-        "D4":  23,
-        "D5":  24,
-        "D6":  25,
-        "D7":  4,
-        "D8":  5,
-        "D9":  6,
-        "D10": 12,
-        "D11": 13,
-        "D12": 19,
-        "D13": 16,
-        "D14": 26,
-        "D15": 20,
-        "D16": 21, 
-        "SW":  19,
-        "USER": 19,        
-        "LED": 26,
-        "BOARD_TYPE": 12,
-        "RST": 16,
-        "BLEINT": 13,
-        "BLERST": 20,
-        "MCURST": 21,
-
-    }
-
-    _dict_2 = {
-        "D0":  17,
-        "D1":   4, # Changed
-        "D2":  27,
-        "D3":  22,
-        "D4":  23,
-        "D5":  24,
-        "D6":  25, # Removed
-        "D7":   4, # Removed
-        "D8":   5, # Removed
-        "D9":   6,
-        "D10": 12,
-        "D11": 13,
-        "D12": 19,
-        "D13": 16,
-        "D14": 26,
-        "D15": 20,
-        "D16": 21,     
-        "SW":  25, # Changed
-        "USER": 25,
-        "LED": 26,
-        "BOARD_TYPE": 12,
-        "RST": 16,
-        "BLEINT": 13,
-        "BLERST": 20,
-        "MCURST":  5, # Changed
-    }
-
-    def __init__(self, *value):
-        super().__init__()
-        GPIO.setmode(GPIO.BCM)
-        GPIO.setwarnings(False)
-
-        self.check_board_type()
-
-        if len(value) > 0:
-            pin = value[0]
-        if len(value) > 1:
-            mode = value[1]
-        else:
-            mode = None
-        if len(value) > 2:
-            setup = value[2]
-        else:
-            setup = None
-        if isinstance(pin, str):
-            try:
-                self._board_name = pin
-                self._pin = self.dict()[pin]
-            except Exception as e:
-                print(e)
-                self._error('Pin should be in %s, not %s' % (self._dict.keys(), pin))
-        elif isinstance(pin, int):
-            self._pin = pin
-        else:
-            self._error('Pin should be in %s, not %s' % (self._dict.keys(), pin))
-        self._value = 0
-        self.init(mode, pull=setup)
-        self._info("Pin init finished.")
-        
-    def check_board_type(self):
-        type_pin = self.dict()["BOARD_TYPE"]
-        GPIO.setup(type_pin, GPIO.IN)
-        if GPIO.input(type_pin) == 0:
-            self._dict = self._dict_1
-        else:
-            self._dict = self._dict_2
-
-    def init(self, mode, pull=PULL_NONE):
-        self._pull = pull
-        self._mode = mode
-        if mode != None:
-            if pull != None:
-                GPIO.setup(self._pin, mode, pull_up_down=pull)
-            else:
-                GPIO.setup(self._pin, mode)
-
-    def dict(self, *_dict):
-        if len(_dict) == 0:
-            return self._dict
-        else:
-            if isinstance(_dict, dict):
-                self._dict = _dict
-            else:
-                self._error(
-                    'argument should be a pin dictionary like {"my pin": ezblock.Pin.cpu.GPIO17}, not %s' % _dict)
-
-    def __call__(self, value):
-        return self.value(value)
-
-    def value(self, *value):
-        if len(value) == 0:
-            if self._mode in [None, self.OUT]:
-                self.mode(self.IN)
-            result = GPIO.input(self._pin)
-            self._debug("read pin %s: %s" % (self._pin, result))
-            return result
-        else:
-            value = value[0]
-            if self._mode in [None, self.IN]:
-                self.mode(self.OUT)
-            GPIO.output(self._pin, value)
-            return value
-
-    def on(self):
-        return self.value(1)
-
-    def off(self):
-        return self.value(0)
-
-    def high(self):
-        return self.on()
-
-    def low(self):
-        return self.off()
-
-    def mode(self, *value):
-        if len(value) == 0:
-            return (self._mode, self._pull)
-        else:
-            self._mode = value[0]
-            if len(value) == 1:
-                GPIO.setup(self._pin, self._mode)
-            elif len(value) == 2:
-                self._pull = value[1]
-                GPIO.setup(self._pin, self._mode, self._pull)
-
-    def pull(self, *value):
-        return self._pull
-
-    def irq(self, handler=None, trigger=None, bouncetime=200):
-        self.mode(self.IN)
-        GPIO.add_event_detect(self._pin, trigger, callback=handler, bouncetime=bouncetime)
-
-    def name(self):
-        return "GPIO%s"%self._pin
-
-    def names(self):
-        return [self.name, self._board_name]
-
-    class cpu(object):
-        GPIO17 = 17
-        GPIO18 = 18
-        GPIO27 = 27
-        GPIO22 = 22
-        GPIO23 = 23
-        GPIO24 = 24
-        GPIO25 = 25
-        GPIO26 = 26
-        GPIO4  = 4
-        GPIO5  = 5
-        GPIO6  = 6
-        GPIO12 = 12
-        GPIO13 = 13
-        GPIO19 = 19
-        GPIO16 = 16
-        GPIO26 = 26
-        GPIO20 = 20
-        GPIO21 = 21
-
-        def __init__(self):
-            pass
-
-
-
-
-########################################################################################################################
-
+#As is from sunfounder
 class ADC(I2C):
     ADDR=0x14                   # 扩展板的地址为0x14
 
@@ -457,7 +388,7 @@ class ADC(I2C):
         chn = 7 - chn
         self.chn = chn | 0x10           # 给从机地址
         self.reg = 0x40 + self.chn
-        # self.bus = smbus.SMBus(1)
+        # self.bus = smbus.DummySMBus(1)
         
     def read(self):                     # adc通道读取数---写一次数据，读取两次数据 （读取的数据范围是0~4095）
         self._debug("Write 0x%02X to 0x%02X"%(self.chn, self.ADDR))
@@ -478,25 +409,8 @@ class ADC(I2C):
 
     def read_voltage(self):                             # 将读取的数据转化为电压值（0~3.3V）
         return self.read*3.3/4095
-    
 
-
-
-
-
-
-
-
-
-################################################################################
-import smbus, math
-
-timer = [
-    {
-        "arr": 0
-    }
-] * 4
-
+#Modified slightly to use the ChatGPT-generated DummySMBus class
 class PWM(I2C):
     REG_CHN = 0x20
     REG_FRE = 0x30
@@ -527,7 +441,7 @@ class PWM(I2C):
         self._debug("PWM address: {:02X}".format(self.ADDR))
         self.channel = channel
         self.timer = int(channel/4)
-        self.bus = smbus.SMBus(1)
+        self.bus = DummySMBus()
         self._pulse_width = 0
         self._freq = 50
         self.freq(50)
@@ -604,44 +518,13 @@ class PWM(I2C):
             pulse_width = temp * timer[self.timer]["arr"]
             self.pulse_width(pulse_width)
 
-        
-def test():
-    import time
-    p = PWM(0)
-    # p.debug = 'debug'
-    p.period(1000)
-    p.prescaler(10)
-    # p.pulse_width(2048)
-    while True:
-        for i in range(0, 4095, 10):
-            p.pulse_width(i)
-            print(i)
-            time.sleep(1/4095)
-        time.sleep(1)
-        for i in range(4095, 0, -10):
-            p.pulse_width(i)
-            print(i)
-            time.sleep(1/4095)
-        time.sleep(1)
-
-def test2():
-    p = PWM("P0")
-    while True:
-        p.pulse_width_percent(50)
-
-
-
-
-
-
-##############################################################
 class Servo(_Basic_class):
     MAX_PW = 2500
     MIN_PW = 500
     _freq = 50
     def __init__(self, pwm):
         super().__init__()
-        self.pwm = pwm
+        self.pwm = PWM(pwm)
         self.pwm.period(4095)
         prescaler = int(float(self.pwm.CLOCK) /self.pwm._freq/self.pwm.period())
         self.pwm.prescaler(prescaler)
@@ -672,117 +555,25 @@ class Servo(_Basic_class):
 
         self.pwm.pulse_width(pwm_value)
 
-def test():
-    print("Test")
-    p = PWM("P0")
-    s0 = Servo(p)
-    s0.debug = "debug"
-    s0.angle(90)
-
-
-
-
-
-###################################################################
-import os
-from time import sleep
-
-
 class fileDB(object):
-	"""A file based database.
+    """A file based database.
 
     A file based database, read and write arguements in the specific file.
     """
-	def __init__(self, db:str, mode:str=None, owner:str=None):  
-		'''Init the db_file is a file to save the datas.'''
-
-		self.db = db
-		# Check if db_file is existed, otherwise create one
-		if self.db != None:	
-			self.file_check_create(db, mode, owner)
-		else:
-			raise ValueError('db: Missing file path parameter.')
+    def __init__(self, db:str, mode:str=None, owner:str=None):  
+        pass
 
 
-	def file_check_create(self, file_path:str, mode:str=None, owner:str=None):
-		dir = file_path.rsplit('/',1)[0]
-		try:
-			if os.path.exists(file_path):
-				if not os.path.isfile(file_path):
-					print('Could not create file, there is a folder with the same name')
-					return
-			else:
-				if os.path.exists(dir):
-					if not os.path.isdir(dir):
-						print('Could not create directory, there is a file with the same name')
-						return
-				else:
-					os.makedirs(file_path.rsplit('/',1)[0], mode=0o754)
-					sleep(0.001)
-
-				with open(file_path, 'w') as f:
-					f.write("# robot-hat config and calibration value of robots\n\n")
-
-			if mode != None:
-				os.popen('sudo chmod %s %s'%(mode, file_path))
-			if owner != None:
-				os.popen('sudo chown -R %s:%s %s'%(owner, owner, file_path.rsplit('/',1)[0]))		
-		except Exception as e:
-			raise(e) 
-	
-	def get(self, name, default_value=None):
-		"""Get value by data's name. Default value is for the arguemants do not exist"""
-		try:
-			conf = open(self.db,'r')
-			lines=conf.readlines()
-			conf.close()
-			file_len=len(lines)-1
-			flag = False
-			# Find the arguement and set the value
-			for i in range(file_len):
-				if lines[i][0] != '#':
-					if lines[i].split('=')[0].strip() == name:
-						value = lines[i].split('=')[1].replace(' ', '').strip()
-						flag = True
-			if flag:
-				return value
-			else:
-				return default_value
-		except FileNotFoundError:
-			conf = open(self.db,'w')
-			conf.write("")
-			conf.close()
-			return default_value
-		except :
-			return default_value
-	
-	def set(self, name, value):
-		"""Set value by data's name. Or create one if the arguement does not exist"""
-
-		# Read the file
-		conf = open(self.db,'r')
-		lines=conf.readlines()
-		conf.close()
-		file_len=len(lines)-1
-		flag = False
-		# Find the arguement and set the value
-		for i in range(file_len):
-			if lines[i][0] != '#':
-				if lines[i].split('=')[0].strip() == name:
-					lines[i] = '%s = %s\n' % (name, value)
-					flag = True
-		# If arguement does not exist, create one
-		if not flag:
-			lines.append('%s = %s\n\n' % (name, value))
-
-		# Save the file
-		conf = open(self.db,'w')
-		conf.writelines(lines)
-		conf.close()
-          
+    def file_check_create(self, file_path:str, mode:str=None, owner:str=None):
+        pass
+    
+    def get(self, name, default_value=None):
+        return default_value
+    
+    def set(self, name, value):
+        pass
 
 
-#######################################################################
 class Ultrasonic():
     def __init__(self, trig, echo, timeout=0.02):
         self.trig = trig
@@ -816,20 +607,22 @@ class Ultrasonic():
             if a != -1:
                 return a
         return -1
-    
 
-
-
-
-############################################################
 class Grayscale_Module(object):
 
     REFERENCE_DEFAULT = [1000]*3
 
     def __init__(self, pin0, pin1, pin2, reference=None):
-        self.chn_0 = ADC(pin0)
-        self.chn_1 = ADC(pin1)
-        self.chn_2 = ADC(pin2)
+        
+        if isinstance(pin0,str):
+            self.chn_0 = ADC(pin0)
+            self.chn_1 = ADC(pin1)
+            self.chn_2 = ADC(pin2)
+        else:
+            self.chn_0 = ADC('A0')
+            self.chn_1 = ADC('A1')
+            self.chn_2 = ADC('A2')
+            
         if reference is None:
             self.reference = self.REFERENCE_DEFAULT
         else:
@@ -864,24 +657,22 @@ class Grayscale_Module(object):
         adc_value_list.append(self.chn_2.read())
         return adc_value_list
     
+    def read(self):
+        return self.get_grayscale_data()
 
-
-
-##################################################################################
-def reset_mcu():
-    mcu_reset = Pin("MCURST")
-    mcu_reset.off()
-    time.sleep(0.001)
-    mcu_reset.on() 
-    time.sleep(0.01)  
-
-
-
-###################################################################################
 def run_command(cmd):
     import subprocess
     p = subprocess.Popen(
         cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     result = p.stdout.read().decode('utf-8')
     status = p.poll()
-    return status, result   
+    return status, result
+
+
+
+def reset_mcu():
+    mcu_reset = Pin("MCURST")
+    mcu_reset.off()
+    time.sleep(0.001)
+    mcu_reset.on() 
+    time.sleep(0.01)  
