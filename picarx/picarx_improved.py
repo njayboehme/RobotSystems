@@ -364,9 +364,116 @@ def run():
             print("\n", "Breaking out of the run.")
             break
 
+
+
+#####################################################################
+class Sensing():
+    def __init__(self):
+        self.gray_scale_vals = [ADC('A0'), ADC('A1'), ADC('A2')]
+
+    def read(self):
+        t = []
+        for val in self.gray_scale_vals:
+            t.append(val.read())
+        return t
+
+    def test(self):
+        while(input("break out of loop with 1: ") != '1'):
+            print(self.read())
+
+
+#####################################################################
+class Interpreter():
+    # Sensitivity is how different light and dark values should be.
+    # Polarity is asking the line we are following lighter or darker than surrounding floor (True means lighter)
+    def __init__(self, sensitivity=30, polarity=True):
+        self.sensitivity = sensitivity
+        self.polar = polarity
+        self.FAR_LEFT = 1
+        self.MID_LEFT = 0.5
+        self.CENTER = 0.0
+        self.MID_RIGHT = -0.5
+        self.FAR_RIGHT = -1.0
+    
+    def find_edge(self, grey_vals):
+        left, mid, right = grey_vals
+        # If there is a sharp difference
+        if abs(left - mid) > self.sensitivity:
+            # Looking for a light line
+            if self.polar:
+                # Left is "lighter",  so we are to the right
+                if (left - mid) > 0:
+                    return self.MID_LEFT 
+                # This means the middle sensor is on the line, so don't do anything
+                else:
+                    return self.CENTER
+            # Looking for a dark line
+            else:
+                # Left is lighter, which means the middle is on the line
+                if (left - mid) > 0:
+                    return self.CENTER
+                # Left is darker
+                else:
+                    return self.MID_LEFT
+        elif abs(mid - right) > self.sensitivity:
+            # Looking for a light line
+            if self.polar:
+                # Right is "lighter",  so we are to the left
+                if (right - mid) > 0:
+                    return self.MID_RIGHT 
+                # This means the middle sensor is on the line, so don't do anything
+                else:
+                    return self.CENTER
+            # Looking for a dark line
+            else:
+                # Right is lighter, which means the middle is on the line
+                if (right - mid) > 0:
+                    return self.CENTER
+                # Right is darker
+                else:
+                    return self.MID_RIGHT
+        # I don't think there is any useful information to be learned from this
+        elif abs(right - left) > self.sensitivity:
+            pass
+
+
+####################################################################
+class Controller():
+
+    def __init__(self, px, scaling_factor, angle):
+        self.scale = scaling_factor
+        self.angle = angle
+        self.px = px
+        self.interpreter = Interpreter()
+        self.sensor = Sensing()
+    
+    def set_angle(self, loc):
+        # Far on the right side, turn left
+        if loc == -1:
+            self.angle = -15
+        # Mid right
+        elif loc == -0.5:
+            self.angle = -8
+        # center
+        elif loc == 0.0:
+            self.angle = 0
+        # mid left
+        elif loc == 0.5:
+            self.angle = 8
+        # left
+        elif loc == 1.0:
+            self.angle = 15
+
+    def control_loop(self):
+        while(input("break out of loop with 1: ") != '1'):
+            grey_vals = self.sensor.read()
+            loc = self.interpreter.find_edge(grey_vals)
+            self.set_angle(loc)
+            self.px.set_dir_servo_angle(self.angle)
+            logging.debug(f"Turn Angle {self.angle}")
+            self.px.forward(50)
+            time.sleep(1)
+            self.px.stop()
+
 if __name__ == "__main__":
-    # px = Picarx()
-    # px.forward(50)
-    # time.sleep(1)
-    # px.stop()
     run()
