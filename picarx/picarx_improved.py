@@ -373,7 +373,7 @@ class Sensing():
         self.greyscale = Grayscale_Module(ADC('A0'), ADC('A1'), ADC('A2'), reference=None)
 
     def read(self):
-        return [self.greyscale.read()]
+        return self.greyscale.read()
 
     def test(self):
         while(input("break out of loop with 1: ") != '1'):
