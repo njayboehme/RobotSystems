@@ -452,19 +452,19 @@ class Controller():
     def set_angle(self, loc):
         # Far on the right side, turn left
         if loc == -1:
-            self.angle = -15
+            self.angle = 15
         # Mid right
         elif loc == -0.5:
-            self.angle = -20
+            self.angle = 20
         # center
         elif loc == 0.0:
             self.angle = 0
         # mid left
         elif loc == 0.5:
-            self.angle = 20
+            self.angle = -20
         # left
         elif loc == 1.0:
-            self.angle = 15
+            self.angle = -15
 
     def control_loop(self):
         # while(input("break out of loop with 1: ") != '1'):
@@ -477,6 +477,8 @@ class Controller():
         self.px.forward(50)
         time.sleep(1)
         self.px.stop()
+        time.sleep(0.5)
+
 
 if __name__ == "__main__":
     # From Week 1
