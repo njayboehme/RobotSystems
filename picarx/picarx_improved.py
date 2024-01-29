@@ -393,47 +393,51 @@ class Interpreter():
         self.MID_RIGHT = -0.5
         self.FAR_RIGHT = -1.0
     
+    # Light is the higher value (~1000). Dark is the lower value (~30)
     def find_edge(self, grey_vals):
         left, mid, right = grey_vals
+        to_return = 0
         # If there is a sharp difference
         if abs(left - mid) > self.sensitivity:
             logging.debug("Difference in left")
             # Looking for a light line
             if self.polar:
-                # Left is "lighter",  so we are to the right
+                # Left is "lighter", so we need to turn left
                 if (left - mid) > 0:
-                    return self.MID_LEFT 
+                    to_return = self.MID_LEFT 
                 # This means the middle sensor is on the line, so don't do anything
                 else:
-                    return self.CENTER
+                    to_return = self.CENTER
             # Looking for a dark line
             else:
                 # Left is lighter, which means the middle is on the line
                 if (left - mid) > 0:
-                    return self.CENTER
-                # Left is darker
+                    to_return = self.CENTER
+                # Left is darker, so we need to turn left
                 else:
-                    return self.MID_LEFT
-        elif abs(mid - right) > self.sensitivity:
+                    to_return = self.MID_LEFT
+        if abs(mid - right) > self.sensitivity:
             logging.debug("difference in right")
             # Looking for a light line
             if self.polar:
-                # Right is "lighter",  so we are to the left
+                # Right is "lighter",  so we need to turn right
                 if (right - mid) > 0:
-                    return self.MID_RIGHT 
+                    to_return = self.MID_RIGHT 
                 # This means the middle sensor is on the line, so don't do anything
                 else:
-                    return self.CENTER
+                    to_return = self.CENTER
             # Looking for a dark line
             else:
                 # Right is lighter, which means the middle is on the line
                 if (right - mid) > 0:
-                    return self.CENTER
-                # Right is darker
+                    to_return = self.CENTER
+                # Right is darker, turn right
                 else:
-                    return self.MID_RIGHT
+                    to_return = self.MID_RIGHT
         else:
-            return self.CENTER
+            to_return = self.CENTER
+
+        return to_return
         # I don't think there is any useful information to be learned from this
         # elif abs(right - left) > self.sensitivity:
         #     pass
@@ -442,29 +446,29 @@ class Interpreter():
 ####################################################################
 class Controller():
 
-    def __init__(self, px, scaling_factor, angle):
+    def __init__(self, px, scaling_factor, angle, sensitivity, polarity):
         self.scale = scaling_factor
         self.angle = angle
         self.px = px
-        self.interpreter = Interpreter()
+        self.interpreter = Interpreter(sensitivity, polarity)
         self.sensor = Sensing()
     
     def set_angle(self, loc):
         # Far on the right side, turn left
         if loc == -1:
-            self.angle = -15
+            self.angle = 15
         # Mid right
         elif loc == -0.5:
-            self.angle = -20
+            self.angle = 20
         # center
         elif loc == 0.0:
             self.angle = 0
         # mid left, turn left
         elif loc == 0.5:
-            self.angle = 20
+            self.angle = -20
         # left
         elif loc == 1.0:
-            self.angle = 15
+            self.angle = -15
 
     def control_loop(self):
         # while(input("break out of loop with 1: ") != '1'):
@@ -484,10 +488,12 @@ if __name__ == "__main__":
     # From Week 1
     # run()
     # From week 3
-    inp = input("Enter 1 for greyscale test, 2 for controller test, and 3 to quit")
+    line = input("Enter 1 if looking for a light line and 2 for a dark ")
+    sensitivity = input("Enter sensitivity value (30 is default) ")
+    inp = input("Enter 1 for greyscale test, 2 for controller test, and 3 to quit ")
 
     s = Sensing()
-    c = Controller(Picarx(), 10, 0)
+    c = Controller(Picarx(), 10, 0, sensitivity, line)
     while(1):
         if inp == '1':
             print(s.read())
