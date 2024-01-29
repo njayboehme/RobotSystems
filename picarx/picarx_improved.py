@@ -396,12 +396,13 @@ class Interpreter():
     # Light is the higher value (~1000). Dark is the lower value (~30)
     def find_edge(self, grey_vals):
         left, mid, right = grey_vals
-        to_return = 0
+        to_return = self.CENTER
         # If there is a sharp difference
         if abs(left - mid) > self.sensitivity:
             logging.debug("Difference in left")
             # Looking for a light line
             if self.polar:
+                logging.debug("Looking for light line")
                 # Left is "lighter", so we need to turn left
                 if (left - mid) > 0:
                     to_return = self.MID_LEFT 
@@ -410,7 +411,8 @@ class Interpreter():
                     to_return = self.CENTER
             # Looking for a dark line
             else:
-                # Left is lighter, which means the middle is on the line
+                logging.debug("Looking for dark line")
+                # Left is darker, which means the middle is on the line
                 if (left - mid) > 0:
                     to_return = self.CENTER
                 # Left is darker, so we need to turn left
@@ -420,6 +422,7 @@ class Interpreter():
             logging.debug("difference in right")
             # Looking for a light line
             if self.polar:
+                logging.debug("Looking for light line")
                 # Right is "lighter",  so we need to turn right
                 if (right - mid) > 0:
                     to_return = self.MID_RIGHT 
@@ -428,14 +431,13 @@ class Interpreter():
                     to_return = self.CENTER
             # Looking for a dark line
             else:
+                logging.debug("Looking for dark line")
                 # Right is lighter, which means the middle is on the line
                 if (right - mid) > 0:
                     to_return = self.CENTER
                 # Right is darker, turn right
                 else:
                     to_return = self.MID_RIGHT
-        else:
-            to_return = self.CENTER
 
         return to_return
         # I don't think there is any useful information to be learned from this
