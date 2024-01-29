@@ -489,11 +489,15 @@ if __name__ == "__main__":
     # run()
     # From week 3
     line = input("Enter 1 if looking for a light line and 2 for a dark ")
-    sensitivity = input("Enter sensitivity value (30 is default) ")
+    if line == '1':
+        polar = True
+    else:
+        polar = False
+    sensitivity = int(input("Enter sensitivity value (30 is default) "))
     inp = input("Enter 1 for greyscale test, 2 for controller test, and 3 to quit ")
 
     s = Sensing()
-    c = Controller(Picarx(), 10, 0, sensitivity, line)
+    c = Controller(Picarx(), 10, 0, sensitivity, polar)
     while(1):
         if inp == '1':
             print(s.read())
