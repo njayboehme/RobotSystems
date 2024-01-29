@@ -459,7 +459,7 @@ class Controller():
         # center
         elif loc == 0.0:
             self.angle = 0
-        # mid left
+        # mid left, turn left
         elif loc == 0.5:
             self.angle = 20
         # left
@@ -484,15 +484,6 @@ if __name__ == "__main__":
     # From Week 1
     # run()
     # From week 3
-    p = Picarx()
-    while(1):
-        print("going 20")
-        p.set_dir_servo_angle(20)
-        time.sleep(1)
-        print("going -20")
-        p.set_dir_servo_angle(-20)
-        time.sleep(1)
-
     inp = input("Enter 1 for greyscale test, 2 for controller test, and 3 to quit")
 
     s = Sensing()
