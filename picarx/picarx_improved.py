@@ -370,12 +370,10 @@ def run():
 class Sensing():
     def __init__(self):
         self.gray_scale_vals = [ADC('A0'), ADC('A1'), ADC('A2')]
+        self.greyscale = Grayscale_Module(ADC('A0'), ADC('A1'), ADC('A2'), reference=None)
 
     def read(self):
-        t = []
-        for val in self.gray_scale_vals:
-            t.append(val.read())
-        return t
+        return [self.greyscale.read()]
 
     def test(self):
         while(input("break out of loop with 1: ") != '1'):
@@ -476,4 +474,18 @@ class Controller():
             self.px.stop()
 
 if __name__ == "__main__":
+    # From Week 1
     run()
+    # From week 3
+    s = Sensing()
+    c = Controller(Picarx(), 10, 0)
+    while(1):
+        inp = input("Enter 1 for greyscale test, 2 for controller test, and 3 to quit")
+        if inp == '1':
+            print(s.read())
+
+        elif inp == '2':
+            pass
+        elif inp == '3':
+            break
+            
