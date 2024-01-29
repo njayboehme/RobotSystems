@@ -412,7 +412,7 @@ class Interpreter():
             # Looking for a dark line
             else:
                 logging.debug("Looking for dark line")
-                # Left is darker, which means the middle is on the line
+                # Left is lighter, so the middle should be on the center
                 if (left - mid) > 0:
                     to_return = self.CENTER
                 # Left is darker, so we need to turn left
@@ -438,6 +438,9 @@ class Interpreter():
                 # Right is darker, turn right
                 else:
                     to_return = self.MID_RIGHT
+        # This means we don't really have any relevant info
+        if abs(left - right) < 25:
+            to_return = self.CENTER
 
         return to_return
         # I don't think there is any useful information to be learned from this
@@ -480,9 +483,9 @@ class Controller():
         self.set_angle(loc)
         self.px.set_dir_servo_angle(self.angle)
         logging.debug(f"Turn Angle {self.angle}")
-        self.px.forward(50)
+        # self.px.forward(50)
         time.sleep(1)
-        self.px.stop()
+        # self.px.stop()
         time.sleep(0.5)
 
 
