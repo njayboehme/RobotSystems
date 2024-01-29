@@ -397,6 +397,7 @@ class Interpreter():
         left, mid, right = grey_vals
         # If there is a sharp difference
         if abs(left - mid) > self.sensitivity:
+            logging.debug("Difference in left")
             # Looking for a light line
             if self.polar:
                 # Left is "lighter",  so we are to the right
@@ -414,6 +415,7 @@ class Interpreter():
                 else:
                     return self.MID_LEFT
         elif abs(mid - right) > self.sensitivity:
+            logging.debug("difference in right")
             # Looking for a light line
             if self.polar:
                 # Right is "lighter",  so we are to the left
@@ -465,15 +467,16 @@ class Controller():
             self.angle = 15
 
     def control_loop(self):
-        while(input("break out of loop with 1: ") != '1'):
-            grey_vals = self.sensor.read()
-            loc = self.interpreter.find_edge(grey_vals)
-            self.set_angle(loc)
-            self.px.set_dir_servo_angle(self.angle)
-            logging.debug(f"Turn Angle {self.angle}")
-            self.px.forward(50)
-            time.sleep(1)
-            self.px.stop()
+        # while(input("break out of loop with 1: ") != '1'):
+        grey_vals = self.sensor.read()
+        print(f"Grey vals: {grey_vals}")
+        loc = self.interpreter.find_edge(grey_vals)
+        self.set_angle(loc)
+        self.px.set_dir_servo_angle(self.angle)
+        logging.debug(f"Turn Angle {self.angle}")
+        self.px.forward(50)
+        time.sleep(1)
+        self.px.stop()
 
 if __name__ == "__main__":
     # From Week 1
