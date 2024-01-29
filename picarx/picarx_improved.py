@@ -430,9 +430,11 @@ class Interpreter():
                 # Right is darker
                 else:
                     return self.MID_RIGHT
+        else:
+            return self.CENTER
         # I don't think there is any useful information to be learned from this
-        elif abs(right - left) > self.sensitivity:
-            pass
+        # elif abs(right - left) > self.sensitivity:
+        #     pass
 
 
 ####################################################################
@@ -475,17 +477,18 @@ class Controller():
 
 if __name__ == "__main__":
     # From Week 1
-    run()
+    # run()
     # From week 3
+    inp = input("Enter 1 for greyscale test, 2 for controller test, and 3 to quit")
+
     s = Sensing()
     c = Controller(Picarx(), 10, 0)
     while(1):
-        inp = input("Enter 1 for greyscale test, 2 for controller test, and 3 to quit")
         if inp == '1':
             print(s.read())
 
         elif inp == '2':
-            pass
+            c.control_loop()
         elif inp == '3':
             break
             
