@@ -455,13 +455,13 @@ class Controller():
             self.angle = -15
         # Mid right
         elif loc == -0.5:
-            self.angle = -8
+            self.angle = -20
         # center
         elif loc == 0.0:
             self.angle = 0
         # mid left
         elif loc == 0.5:
-            self.angle = 8
+            self.angle = 20
         # left
         elif loc == 1.0:
             self.angle = 15
