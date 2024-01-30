@@ -524,7 +524,7 @@ class Controller():
         print(f"Grey vals: {grey_vals}")
         loc = self.interpreter.find_edge(grey_vals)
         # This will adjust the interpreter's value to an angle between -30 and 30
-        self.angle = loc * self.scaling_factor
+        self.angle = loc * self.scale
         # Below was the OG code
         # self.set_angle(loc)
         self.px.set_dir_servo_angle(self.angle)
