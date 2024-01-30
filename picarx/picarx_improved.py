@@ -396,35 +396,36 @@ class Interpreter():
     # Light is the higher value (~1000). Dark is the lower value (~30)
     def find_edge(self, grey_vals):
         # TODO: Need to do some normalization
+        edge_detected = False
         max_val = max(grey_vals)
         norm = [v / max_val for v in grey_vals]
         print(f"Grey vals normalized: {norm}")
         norm_l, norm_m, norm_r = norm
 
         to_return = 0
-        # If the left sensor is more different than the right
-        if (norm_l - norm_m) > (norm_r - norm_m):
-            if abs(norm_l - norm_m) > self.sensitivity:
-                logging.debug("Difference in left")
-                # Looking for a light line
-                if self.polar:
-                    logging.debug("Looking for light line")
-                    # If the left sensor is on the light line
-                    if norm_l - norm_m > 0:
-                        to_return = -(norm_l - norm_m) # This should be negative because the car needs to turn left, which is a - angle
-                    # If the middle sensor is on the light line, don't change
-                    else:
-                        to_return = 0
-                # Looking for a dark line
+        if abs(norm_l - norm_m) > self.sensitivity:
+            edge_detected = True
+            logging.debug("Difference in left")
+            # Looking for a light line
+            if self.polar:
+                logging.debug("Looking for light line")
+                # If the left sensor is on the light line
+                if norm_l - norm_m > 0:
+                    to_return = -(norm_l - norm_m) # This should be negative because the car needs to turn left, which is a - angle
+                # If the middle sensor is on the light line, don't change
                 else:
-                    logging.debug("Looking for dark line")
-                    # If the middle sensor is on the dark line, don't change
-                    if norm_l - norm_m > 0:
-                        to_return = 0
-                    # If the left sensor is less than the middle sensor (darker), move left
-                    else:
-                        to_return = norm_l - norm_m # This will be negative because we already established above it is not positive
-        else:
+                    to_return = 0
+            # Looking for a dark line
+            else:
+                logging.debug("Looking for dark line")
+                # If the middle sensor is on the dark line, don't change
+                if norm_l - norm_m > 0:
+                    to_return = 0
+                # If the left sensor is less than the middle sensor (darker), move left
+                else:
+                    to_return = norm_l - norm_m # This will be negative because we already established above it is not positive
+        # If we haven't detected an edge yet or if we have detected an edge and the right edge is further away from the middle
+        if not edge_detected or (edge_detected and (norm_r - norm_m) > (norm_l - norm_m)):
             if abs(norm_r - norm_m) > self.sensitivity:
                 logging.debug("Difference in right")
                 # Looking for a light line
