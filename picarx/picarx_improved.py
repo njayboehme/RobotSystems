@@ -546,7 +546,7 @@ if __name__ == "__main__":
     inp = input("Enter 1 for greyscale test, 2 for controller test, and 3 to quit ")
 
     s = Sensing()
-    c = Controller(Picarx(), 10, 0, sensitivity, polar)
+    c = Controller(Picarx(), sensitivity=sensitivity, polar=polar)
     while(1):
         if inp == '1':
             print(s.read())
