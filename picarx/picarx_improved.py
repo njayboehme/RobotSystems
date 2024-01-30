@@ -503,12 +503,13 @@ class Interpreter():
 ####################################################################
 class Controller():
 
-    def __init__(self, px, scaling_factor=30, sensitivity=0.1, polarity=True):
+    def __init__(self, px, scaling_factor=30, sensitivity=0.1, polarity=True, init_engine=50):
         self.scale = scaling_factor
         self.angle = 0
         self.px = px
         self.interpreter = Interpreter(sensitivity, polarity)
         self.sensor = Sensing()
+        self.px.forward(init_engine)
     
     # def set_angle(self, loc):
     #     # Far on the right side, turn right
@@ -536,7 +537,7 @@ class Controller():
         self.angle = loc * self.scale
         self.px.set_dir_servo_angle(self.angle)
         logging.debug(f"Turn Angle {self.angle}")
-        self.px.forward(50)
+        self.px.forward(20)
         # time.sleep(1)
 
 
@@ -550,11 +551,12 @@ if __name__ == "__main__":
     else:
         polar = False
     sensitivity = float(input("Enter sensitivity value (0.1 is default) "))
-    scale = float(input("Enter scaling value (default is 30)"))
+    scale = float(input("Enter scaling value (default is 30) "))
+    init_engine = float(input("Enter initial engine speed (50 is default) "))
     inp = input("Enter 1 for greyscale test, 2 for controller test, and 3 to quit ")
 
     s = Sensing()
-    c = Controller(Picarx(), scaling_factor=scale, sensitivity=sensitivity, polarity=polar)
+    c = Controller(Picarx(), scaling_factor=scale, sensitivity=sensitivity, polarity=polar, start_engine=init_engine)
     while(1):
         if inp == '1':
             print(s.read())
