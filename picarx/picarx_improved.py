@@ -509,7 +509,7 @@ class Controller():
         self.px = px
         self.interpreter = Interpreter(sensitivity, polarity)
         self.sensor = Sensing()
-        self.px.forward(init_engine)
+        self.px.forward(start_engine)
     
     # def set_angle(self, loc):
     #     # Far on the right side, turn right
