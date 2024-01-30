@@ -395,92 +395,136 @@ class Interpreter():
     
     # Light is the higher value (~1000). Dark is the lower value (~30)
     def find_edge(self, grey_vals):
-        left, mid, right = grey_vals
-        to_return = self.CENTER
-        # If there is a sharp difference
-        if abs(left - mid) > self.sensitivity:
+        # TODO: Need to do some normalization
+        norm = grey_vals / max(grey_vals)
+        norm_l, norm_m, norm_r = norm
+
+        if abs(norm_l - norm_m) > self.sensitivity:
             logging.debug("Difference in left")
             # Looking for a light line
             if self.polar:
                 logging.debug("Looking for light line")
-                # Left is "lighter", so we need to turn left
-                if (left - mid) > 0:
-                    to_return = self.MID_LEFT 
-                # This means the middle sensor is on the line, so don't do anything
+                # If the left sensor is on the light line
+                if norm_l - norm_m > 0:
+                    return -(norm_l - norm_m) # This should be negative because the car needs to turn left, which is a - angle
+                # If the middle sensor is on the light line, don't change
                 else:
-                    to_return = self.CENTER
+                    return 0
             # Looking for a dark line
             else:
                 logging.debug("Looking for dark line")
-                # Left is lighter, so the middle should be on the center
-                if (left - mid) > 0:
-                    to_return = self.CENTER
-                # Left is darker, so we need to turn left
+                # If the middle sensor is on the dark line, don't change
+                if norm_l - norm_m > 0:
+                    return 0
+                # If the left sensor is less than the middle sensor (darker), move left
                 else:
-                    to_return = self.MID_LEFT
-        if abs(mid - right) > self.sensitivity:
-            logging.debug("difference in right")
+                    return norm_l - norm_m # This will be negative because we already established above it is not positive
+        if abs(norm_r - norm_m) > self.sensitivity:
+            logging.debug("Difference in right")
             # Looking for a light line
             if self.polar:
                 logging.debug("Looking for light line")
-                # Right is "lighter",  so we need to turn right
-                if (right - mid) > 0:
-                    to_return = self.MID_RIGHT 
-                # This means the middle sensor is on the line, so don't do anything
+                # If the right is on the light line
+                if norm_r - norm_m > 0:
+                    return norm_r - norm_m
+                # If the center is on the light line, do nothing
                 else:
-                    to_return = self.CENTER
+                    return 0
             # Looking for a dark line
             else:
                 logging.debug("Looking for dark line")
-                # Right is lighter, which means the middle is on the line
-                if (right - mid) > 0:
-                    to_return = self.CENTER
-                # Right is darker, turn right
+                # If the right is lighter than the middle, i.e. middle is on the line, do nothing
+                if norm_r - norm_m > 0:
+                    return 0
+                # If the right side is darker than the left
                 else:
-                    to_return = self.MID_RIGHT
-        # This means we don't really have any relevant info
-        if abs(left - right) < 25:
-            to_return = self.CENTER
+                    return abs(norm_r - norm_m)
 
-        return to_return
-        # I don't think there is any useful information to be learned from this
-        # elif abs(right - left) > self.sensitivity:
-        #     pass
+
+        # left, mid, right = grey_vals
+        # to_return = self.CENTER
+        # # If there is a sharp difference
+        # if abs(left - mid) > self.sensitivity:
+        #     logging.debug("Difference in left")
+        #     # Looking for a light line
+        #     if self.polar:
+        #         logging.debug("Looking for light line")
+        #         # Left is "lighter", so we need to turn left
+        #         if (left - mid) > 0:
+        #             to_return = self.MID_LEFT 
+        #         # This means the middle sensor is on the line, so don't do anything
+        #         else:
+        #             to_return = self.CENTER
+        #     # Looking for a dark line
+        #     else:
+        #         logging.debug("Looking for dark line")
+        #         # Left is lighter, so the middle should be on the center
+        #         if (left - mid) > 0:
+        #             to_return = self.CENTER
+        #         # Left is darker, so we need to turn left
+        #         else:
+        #             to_return = self.MID_LEFT
+        # if abs(mid - right) > self.sensitivity:
+        #     logging.debug("difference in right")
+        #     # Looking for a light line
+        #     if self.polar:
+        #         logging.debug("Looking for light line")
+        #         # Right is "lighter",  so we need to turn right
+        #         if (right - mid) > 0:
+        #             to_return = self.MID_RIGHT 
+        #         # This means the middle sensor is on the line, so don't do anything
+        #         else:
+        #             to_return = self.CENTER
+        #     # Looking for a dark line
+        #     else:
+        #         logging.debug("Looking for dark line")
+        #         # Right is lighter, which means the middle is on the line
+        #         if (right - mid) > 0:
+        #             to_return = self.CENTER
+        #         # Right is darker, turn right
+        #         else:
+        #             to_return = self.MID_RIGHT
+        # # This means we don't really have any relevant info
+        # if abs(left - right) < 25:
+        #     to_return = self.CENTER
 
 
 ####################################################################
 class Controller():
 
-    def __init__(self, px, scaling_factor, angle, sensitivity, polarity):
+    def __init__(self, px, scaling_factor=30, sensitivity=50, polarity=True):
         self.scale = scaling_factor
-        self.angle = angle
+        self.angle = 0
         self.px = px
         self.interpreter = Interpreter(sensitivity, polarity)
         self.sensor = Sensing()
     
-    def set_angle(self, loc):
-        # Far on the right side, turn left
-        if loc == -1:
-            self.angle = 15
-        # Mid right
-        elif loc == -0.5:
-            self.angle = 20
-        # center
-        elif loc == 0.0:
-            self.angle = 0
-        # mid left, turn left
-        elif loc == 0.5:
-            self.angle = -20
-        # left
-        elif loc == 1.0:
-            self.angle = -15
+    # def set_angle(self, loc):
+    #     # Far on the right side, turn right
+    #     if loc == -1:
+    #         self.angle = 15
+    #     # Mid right
+    #     elif loc == -0.5:
+    #         self.angle = 20
+    #     # center
+    #     elif loc == 0.0:
+    #         self.angle = 0
+    #     # mid left, turn left
+    #     elif loc == 0.5:
+    #         self.angle = -20
+    #     # left
+    #     elif loc == 1.0:
+    #         self.angle = -15
 
     def control_loop(self):
         # while(input("break out of loop with 1: ") != '1'):
         grey_vals = self.sensor.read()
         print(f"Grey vals: {grey_vals}")
         loc = self.interpreter.find_edge(grey_vals)
-        self.set_angle(loc)
+        # This will adjust the interpreter's value to an angle between -30 and 30
+        self.angle = loc * self.scaling_factor
+        # Below was the OG code
+        # self.set_angle(loc)
         self.px.set_dir_servo_angle(self.angle)
         logging.debug(f"Turn Angle {self.angle}")
         # self.px.forward(50)
