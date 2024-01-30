@@ -503,7 +503,7 @@ class Interpreter():
 ####################################################################
 class Controller():
 
-    def __init__(self, px, scaling_factor=30, sensitivity=0.1, polarity=True, init_engine=50):
+    def __init__(self, px, scaling_factor=30, sensitivity=0.1, polarity=True, start_engine=50):
         self.scale = scaling_factor
         self.angle = 0
         self.px = px
