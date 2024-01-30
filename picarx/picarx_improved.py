@@ -401,6 +401,8 @@ class Interpreter():
         print(f"Grey vals normalized: {norm}")
         norm_l, norm_m, norm_r = norm
 
+        to_return = 0
+
         if abs(norm_l - norm_m) > self.sensitivity:
             logging.debug("Difference in left")
             # Looking for a light line
@@ -408,19 +410,19 @@ class Interpreter():
                 logging.debug("Looking for light line")
                 # If the left sensor is on the light line
                 if norm_l - norm_m > 0:
-                    return -(norm_l - norm_m) # This should be negative because the car needs to turn left, which is a - angle
+                    to_return = -(norm_l - norm_m) # This should be negative because the car needs to turn left, which is a - angle
                 # If the middle sensor is on the light line, don't change
                 else:
-                    return 0
+                    to_return = 0
             # Looking for a dark line
             else:
                 logging.debug("Looking for dark line")
                 # If the middle sensor is on the dark line, don't change
                 if norm_l - norm_m > 0:
-                    return 0
+                    to_return = 0
                 # If the left sensor is less than the middle sensor (darker), move left
                 else:
-                    return norm_l - norm_m # This will be negative because we already established above it is not positive
+                    to_return = norm_l - norm_m # This will be negative because we already established above it is not positive
         if abs(norm_r - norm_m) > self.sensitivity:
             logging.debug("Difference in right")
             # Looking for a light line
@@ -428,19 +430,23 @@ class Interpreter():
                 logging.debug("Looking for light line")
                 # If the right is on the light line
                 if norm_r - norm_m > 0:
-                    return norm_r - norm_m
+                    to_return = norm_r - norm_m
                 # If the center is on the light line, do nothing
                 else:
-                    return 0
+                    to_return = 0
             # Looking for a dark line
             else:
                 logging.debug("Looking for dark line")
                 # If the right is lighter than the middle, i.e. middle is on the line, do nothing
                 if norm_r - norm_m > 0:
-                    return 0
+                    to_return = 0
                 # If the right side is darker than the left
                 else:
-                    return abs(norm_r - norm_m)
+                    to_return = abs(norm_r - norm_m)
+        if abs(norm_l - norm_r) < self.sensitivity:
+            logging.debug("left and right grey values are too close")
+            to_return = 0
+        return to_return
 
 
         # left, mid, right = grey_vals
