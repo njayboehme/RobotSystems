@@ -396,7 +396,9 @@ class Interpreter():
     # Light is the higher value (~1000). Dark is the lower value (~30)
     def find_edge(self, grey_vals):
         # TODO: Need to do some normalization
-        norm = grey_vals / max(grey_vals)
+        max_val = max(grey_vals)
+        norm = [v / max_val for v in grey_vals]
+        print(f"Grey vals normalized: {norm}")
         norm_l, norm_m, norm_r = norm
 
         if abs(norm_l - norm_m) > self.sensitivity:
@@ -520,7 +522,6 @@ class Controller():
         # while(input("break out of loop with 1: ") != '1'):
         grey_vals = self.sensor.read()
         print(f"Grey vals: {grey_vals}")
-        print(f"Grey vals normalized: {grey_vals / max(grey_vals)}")
         loc = self.interpreter.find_edge(grey_vals)
         # This will adjust the interpreter's value to an angle between -30 and 30
         self.angle = loc * self.scaling_factor
