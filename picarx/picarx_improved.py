@@ -532,16 +532,12 @@ class Controller():
         grey_vals = self.sensor.read()
         print(f"Grey vals: {grey_vals}")
         loc = self.interpreter.find_edge(grey_vals)
-        # This will adjust the interpreter's value to an angle between -30 and 30
+        # This will adjust the interpreter's value to an angle between -scale and scale
         self.angle = loc * self.scale
-        # Below was the OG code
-        # self.set_angle(loc)
         self.px.set_dir_servo_angle(self.angle)
         logging.debug(f"Turn Angle {self.angle}")
-        # self.px.forward(50)
-        time.sleep(1)
-        # self.px.stop()
-        time.sleep(0.5)
+        self.px.forward(50)
+        # time.sleep(1)
 
 
 if __name__ == "__main__":
@@ -554,14 +550,14 @@ if __name__ == "__main__":
     else:
         polar = False
     sensitivity = float(input("Enter sensitivity value (0.1 is default) "))
+    scale = float(input("Enter scaling value (default is 30)"))
     inp = input("Enter 1 for greyscale test, 2 for controller test, and 3 to quit ")
 
     s = Sensing()
-    c = Controller(Picarx(), sensitivity=sensitivity, polarity=polar)
+    c = Controller(Picarx(), scaling_factor=scale, sensitivity=sensitivity, polarity=polar)
     while(1):
         if inp == '1':
             print(s.read())
-
         elif inp == '2':
             c.control_loop()
         elif inp == '3':
