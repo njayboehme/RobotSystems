@@ -520,6 +520,7 @@ class Controller():
         # while(input("break out of loop with 1: ") != '1'):
         grey_vals = self.sensor.read()
         print(f"Grey vals: {grey_vals}")
+        print(f"Grey vals normalized: {grey_vals / max(grey_vals)}")
         loc = self.interpreter.find_edge(grey_vals)
         # This will adjust the interpreter's value to an angle between -30 and 30
         self.angle = loc * self.scaling_factor
@@ -542,7 +543,7 @@ if __name__ == "__main__":
         polar = True
     else:
         polar = False
-    sensitivity = int(input("Enter sensitivity value (30 is default) "))
+    sensitivity = float(input("Enter sensitivity value (30 is default) "))
     inp = input("Enter 1 for greyscale test, 2 for controller test, and 3 to quit ")
 
     s = Sensing()
