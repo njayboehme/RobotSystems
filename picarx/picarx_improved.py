@@ -398,9 +398,12 @@ class Interpreter():
         # TODO: Need to do some normalization
         edge_detected = False
         max_val = max(grey_vals)
-        norm = [v / max_val for v in grey_vals]
-        print(f"Grey vals normalized: {norm}")
-        norm_l, norm_m, norm_r = norm
+        if sum(grey_vals) == 0:
+            norm = grey_vals
+        else:
+            norm = [v / max_val for v in grey_vals]
+            print(f"Grey vals normalized: {norm}")
+            norm_l, norm_m, norm_r = norm
 
         to_return = 0
         if abs(norm_l - norm_m) > self.sensitivity:
