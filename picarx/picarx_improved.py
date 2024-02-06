@@ -383,6 +383,7 @@ class Sensing():
     # producer
     def sensing_producer(self, bus, delay):
         while(1):
+            logging.debug("Writing to sensor bus")
             bus.write(self.read())
             time.sleep(delay)
 
@@ -467,9 +468,11 @@ class Interpreter():
     
     def interpreter_consumer_producer(self, sense_bus, inter_bus, delay):
         while(1):
+            logging.debug("Reading from sensor bus")
             grey_vals = sense_bus.read()
             logging.debug(f"Current Grey vals {grey_vals}")
             add_to_bus = self.find_edge(grey_vals)
+            logging.debug("Writing to interpreter bus")
             inter_bus.write(add_to_bus)
             time.sleep(delay)
 
@@ -500,6 +503,7 @@ class Controller():
     
     def controller_consumer(self, inter_bus, delay):                                                                                                                                                                                                    
         while(1):
+            logging.debug("Reading from interpreter bus")
             angle = inter_bus.read()
             logging.debug(f"Angle value {angle}")
             self.control_loop(angle)
