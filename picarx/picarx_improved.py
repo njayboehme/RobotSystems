@@ -570,6 +570,7 @@ if __name__ == "__main__":
     
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
+        print('here')
         # eSensor = executor.submit(sensor_function, sensor_values_bus, sensor_delay)
         eSensor = executor.submit(sensor.sensing_producer(0.1), sensor_bus, 0.1)
         eInterpreter = executor.submit(inter.interpreter_consumer_producer(0.1), sensor_bus, inter_bus, 0.1)
