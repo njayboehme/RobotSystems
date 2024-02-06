@@ -414,17 +414,17 @@ class Interpreter():
             norm = grey_vals
         else:
             norm = [v / max_val for v in grey_vals]
-            print(f"Grey vals normalized: {norm}")
+            # print(f"Grey vals normalized: {norm}")
             norm_l, norm_m, norm_r = norm
             print(abs(norm_l - norm_m) > self.sensitivity)
 
         to_return = 0
         if abs(norm_l - norm_m) > self.sensitivity:
             edge_detected = True
-            logging.debug("Difference in left")
+            # logging.debug("Difference in left")
             # Looking for a light line
             if self.polar:
-                logging.debug("Looking for light line")
+                # logging.debug("Looking for light line")
                 # If the left sensor is on the light line
                 if norm_l - norm_m > 0:
                     to_return = -(norm_l - norm_m) # This should be negative because the car needs to turn left, which is a - angle
@@ -433,7 +433,7 @@ class Interpreter():
                     to_return = 0
             # Looking for a dark line
             else:
-                logging.debug("Looking for dark line")
+                # logging.debug("Looking for dark line")
                 # If the middle sensor is on the dark line, don't change
                 if norm_l - norm_m > 0:
                     to_return = 0
@@ -443,10 +443,10 @@ class Interpreter():
         # If we haven't detected an edge yet or if we have detected an edge and the right edge is further away from the middle
         if not edge_detected or (edge_detected and (norm_r - norm_m) > (norm_l - norm_m)):
             if abs(norm_r - norm_m) > self.sensitivity:
-                logging.debug("Difference in right")
+                # logging.debug("Difference in right")
                 # Looking for a light line
                 if self.polar:
-                    logging.debug("Looking for light line")
+                    # logging.debug("Looking for light line")
                     # If the right is on the light line
                     if norm_r - norm_m > 0:
                         to_return = norm_r - norm_m
@@ -455,7 +455,7 @@ class Interpreter():
                         to_return = 0
                 # Looking for a dark line
                 else:
-                    logging.debug("Looking for dark line")
+                    # logging.debug("Looking for dark line")
                     # If the right is lighter than the middle, i.e. middle is on the line, do nothing
                     if norm_r - norm_m > 0:
                         to_return = 0
@@ -464,7 +464,6 @@ class Interpreter():
                         to_return = abs(norm_r - norm_m)
         if abs(norm_l - norm_r) < self.sensitivity:
             #logging.debug("left and right grey values are too close")
-            logging.debug(str(norm_l) + ' ' + str(norm_r) + ' ' + str(self.sensitivity)+'\n')
             to_return = 0
         return to_return
     
@@ -474,7 +473,7 @@ class Interpreter():
             grey_vals = sense_bus.read()
             # logging.debug(f"Current Grey vals {grey_vals}")
             add_to_bus = self.find_edge(grey_vals)
-            logging.debug(f"Writing to interpreter bus: {add_to_bus}")
+            # logging.debug(f"Writing to interpreter bus: {add_to_bus}")
             inter_bus.write(add_to_bus)
             time.sleep(delay)
 
@@ -500,14 +499,14 @@ class Controller():
         # This will adjust the interpreter's value to an angle between -scale and scale
         # self.angle = loc * self.scale
         self.px.set_dir_servo_angle(self.scale * loc)
-        logging.debug(f"Turn Angle {self.angle}")
+        # logging.debug(f"Turn Angle {self.angle}")
         self.px.forward(self.steady_engine)
     
     def controller_consumer(self, inter_bus, delay):                                                                                                                                                                                                    
         while(1):
             # logging.debug("Reading from interpreter bus")
             angle = inter_bus.read()
-            logging.debug(f"Angle value {angle}")
+            # logging.debug(f"Angle value {angle}")
             # self.control_loop(angle)
             self.px.set_dir_servo_angle(self.scale * angle)
             self.px.forward(self.steady_engine)
