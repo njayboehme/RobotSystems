@@ -517,7 +517,7 @@ class Controller():
 #####################################################################################
 class Bus():
     def __init__(self):
-        self.message = None
+        self.message = 0
         self.lock = rwlock.RWLockWriteD()
 
     def write(self, msg):
