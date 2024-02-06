@@ -373,18 +373,17 @@ def run():
 
 #####################################################################
 class Sensing():
-    def __init__(self, bus=None):
+    def __init__(self):
         self.gray_scale_vals = [ADC('A0'), ADC('A1'), ADC('A2')]
         self.greyscale = Grayscale_Module(ADC('A0'), ADC('A1'), ADC('A2'), reference=None)
-        self.bus = bus
 
     def read(self):
         return self.greyscale.read()
     
     # producer
-    def sensing_producer(self, delay):
+    def sensing_producer(self, bus, delay):
         while(1):
-            self.bus.write(self.read())
+            bus.write(self.read())
             time.sleep(delay)
 
     def test(self):
@@ -396,11 +395,9 @@ class Sensing():
 class Interpreter():
     # Sensitivity is how different light and dark values should be.
     # Polarity is asking the line we are following lighter or darker than surrounding floor (True means lighter)
-    def __init__(self, sensitivity=30, polarity=True, sense_bus=None, inter_bus=None):
+    def __init__(self, sensitivity=30, polarity=True):
         self.sensitivity = sensitivity
         self.polar = polarity
-        self.sense_bus = sense_bus
-        self.inter_bus = inter_bus
         self.FAR_LEFT = 1
         self.MID_LEFT = 0.5
         self.CENTER = 0.0
@@ -468,12 +465,12 @@ class Interpreter():
             to_return = 0
         return to_return
     
-    def interpreter_consumer_producer(self, delay):
+    def interpreter_consumer_producer(self, sense_bus, inter_bus, delay):
         while(1):
-            grey_vals = self.sense_bus.read()
+            grey_vals = sense_bus.read()
             logging.debug(f"Current Grey vals {grey_vals}")
             add_to_bus = self.find_edge(grey_vals)
-            self.inter_bus.write(add_to_bus)
+            inter_bus.write(add_to_bus)
             time.sleep(delay)
 
 
@@ -481,14 +478,13 @@ class Interpreter():
 ####################################################################
 class Controller():
 
-    def __init__(self, px, steady_engine, scaling_factor=30, sensitivity=0.1, polarity=True, start_engine=50, inter_bus=None):
+    def __init__(self, px, steady_engine, scaling_factor=30, sensitivity=0.1, polarity=True, start_engine=50):
         self.scale = scaling_factor
         self.steady_engine = steady_engine
         self.angle = 0
         self.px = px
         self.interpreter = Interpreter(sensitivity, polarity)
         self.sensor = Sensing()
-        self.inter_bus = inter_bus
         self.px.forward(start_engine)
         time.sleep(0.1)
 
@@ -502,9 +498,9 @@ class Controller():
         logging.debug(f"Turn Angle {self.angle}")
         self.px.forward(self.steady_engine)
     
-    def controller_consumer(self, delay):                                                                                                                                                                                                    
+    def controller_consumer(self, inter_bus, delay):                                                                                                                                                                                                    
         while(1):
-            angle = self.inter_bus.read()
+            angle = inter_bus.read()
             self.control_loop(angle)
             time.sleep(delay)
 
@@ -561,20 +557,18 @@ if __name__ == "__main__":
     steady_engine = float(input("Enter steady engine speed (25 is default) "))
 
     sensor_bus = Bus()
-    sensor = Sensing(sensor_bus)
+    sensor = Sensing()
     
     inter_bus = Bus()
-    inter = Interpreter(inter_bus=inter_bus)
+    inter = Interpreter()
     
-    cont = Controller(Picarx(), steady_engine, scaling_factor=scale, sensitivity=sensitivity, polarity=polar, start_engine=init_engine, inter_bus=inter_bus)
+    cont = Controller(Picarx(), steady_engine, scaling_factor=scale, sensitivity=sensitivity, polarity=polar, start_engine=init_engine)
     
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
-        print('here')
-        # eSensor = executor.submit(sensor_function, sensor_values_bus, sensor_delay)
-        eSensor = executor.submit(sensor.sensing_producer(0.1), sensor_bus, 0.1)
-        eInterpreter = executor.submit(inter.interpreter_consumer_producer(0.1), sensor_bus, inter_bus, 0.1)
-        eController = executor.submit(cont.controller_consumer(0.1), inter_bus, 0.1)
+        eSensor = executor.submit(sensor.sensing_producer, sensor_bus, 0.1)
+        eInterpreter = executor.submit(inter.interpreter_consumer_producer, sensor_bus, inter_bus, 0.1)
+        eController = executor.submit(cont.controller_consumer, inter_bus, 0.1)
     eSensor.result()
     eInterpreter.result()
     eController.result()
