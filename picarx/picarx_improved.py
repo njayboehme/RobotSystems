@@ -11,6 +11,11 @@ except ImportError:
     from sim_robot_hat import reset_mcu, run_command
 import logging
 import atexit
+import concurrent.futures
+import sys
+
+print(sys.executable)
+from readerwriterlock import rwlock
 
 logging_format = "%(asctime)s: %(message)s"
 logging.basicConfig(format=logging_format, level=logging.INFO,datefmt="%H:%M:%S")
@@ -368,12 +373,19 @@ def run():
 
 #####################################################################
 class Sensing():
-    def __init__(self):
+    def __init__(self, bus=None):
         self.gray_scale_vals = [ADC('A0'), ADC('A1'), ADC('A2')]
         self.greyscale = Grayscale_Module(ADC('A0'), ADC('A1'), ADC('A2'), reference=None)
+        self.bus = bus
 
     def read(self):
         return self.greyscale.read()
+    
+    # producer
+    def sensing_producer(self, delay):
+        while(1):
+            self.bus.write(self.read())
+            time.sleep(delay)
 
     def test(self):
         while(input("break out of loop with 1: ") != '1'):
@@ -384,9 +396,11 @@ class Sensing():
 class Interpreter():
     # Sensitivity is how different light and dark values should be.
     # Polarity is asking the line we are following lighter or darker than surrounding floor (True means lighter)
-    def __init__(self, sensitivity=30, polarity=True):
+    def __init__(self, sensitivity=30, polarity=True, sense_bus=None, inter_bus=None):
         self.sensitivity = sensitivity
         self.polar = polarity
+        self.sense_bus = sense_bus
+        self.inter_bus = inter_bus
         self.FAR_LEFT = 1
         self.MID_LEFT = 0.5
         self.CENTER = 0.0
@@ -453,121 +467,114 @@ class Interpreter():
             logging.debug("left and right grey values are too close")
             to_return = 0
         return to_return
+    
+    def interpreter_consumer_producer(self, delay):
+        while(1):
+            grey_vals = self.sense_bus.read()
+            add_to_bus = self.find_edge(grey_vals)
+            self.inter_bus.write(add_to_bus)
+            time.sleep(delay)
 
-
-        # left, mid, right = grey_vals
-        # to_return = self.CENTER
-        # # If there is a sharp difference
-        # if abs(left - mid) > self.sensitivity:
-        #     logging.debug("Difference in left")
-        #     # Looking for a light line
-        #     if self.polar:
-        #         logging.debug("Looking for light line")
-        #         # Left is "lighter", so we need to turn left
-        #         if (left - mid) > 0:
-        #             to_return = self.MID_LEFT 
-        #         # This means the middle sensor is on the line, so don't do anything
-        #         else:
-        #             to_return = self.CENTER
-        #     # Looking for a dark line
-        #     else:
-        #         logging.debug("Looking for dark line")
-        #         # Left is lighter, so the middle should be on the center
-        #         if (left - mid) > 0:
-        #             to_return = self.CENTER
-        #         # Left is darker, so we need to turn left
-        #         else:
-        #             to_return = self.MID_LEFT
-        # if abs(mid - right) > self.sensitivity:
-        #     logging.debug("difference in right")
-        #     # Looking for a light line
-        #     if self.polar:
-        #         logging.debug("Looking for light line")
-        #         # Right is "lighter",  so we need to turn right
-        #         if (right - mid) > 0:
-        #             to_return = self.MID_RIGHT 
-        #         # This means the middle sensor is on the line, so don't do anything
-        #         else:
-        #             to_return = self.CENTER
-        #     # Looking for a dark line
-        #     else:
-        #         logging.debug("Looking for dark line")
-        #         # Right is lighter, which means the middle is on the line
-        #         if (right - mid) > 0:
-        #             to_return = self.CENTER
-        #         # Right is darker, turn right
-        #         else:
-        #             to_return = self.MID_RIGHT
-        # # This means we don't really have any relevant info
-        # if abs(left - right) < 25:
-        #     to_return = self.CENTER
 
 
 ####################################################################
 class Controller():
 
-    def __init__(self, px, steady_engine, scaling_factor=30, sensitivity=0.1, polarity=True, start_engine=50):
+    def __init__(self, px, steady_engine, scaling_factor=30, sensitivity=0.1, polarity=True, start_engine=50, inter_bus=None):
         self.scale = scaling_factor
         self.steady_engine = steady_engine
         self.angle = 0
         self.px = px
         self.interpreter = Interpreter(sensitivity, polarity)
         self.sensor = Sensing()
+        self.inter_bus = inter_bus
         self.px.forward(start_engine)
         time.sleep(0.1)
-    
-    # def set_angle(self, loc):
-    #     # Far on the right side, turn right
-    #     if loc == -1:
-    #         self.angle = 15
-    #     # Mid right
-    #     elif loc == -0.5:
-    #         self.angle = 20
-    #     # center
-    #     elif loc == 0.0:
-    #         self.angle = 0
-    #     # mid left, turn left
-    #     elif loc == 0.5:
-    #         self.angle = -20
-    #     # left
-    #     elif loc == 1.0:
-    #         self.angle = -15
 
-    def control_loop(self):
-        # while(input("break out of loop with 1: ") != '1'):
-        grey_vals = self.sensor.read()
-        print(f"Grey vals: {grey_vals}")
-        loc = self.interpreter.find_edge(grey_vals)
+    def control_loop(self, loc):
+        # grey_vals = self.sensor.read()
+        # print(f"Grey vals: {grey_vals}")
+        # loc = self.interpreter.find_edge(grey_vals)
         # This will adjust the interpreter's value to an angle between -scale and scale
-        self.angle = loc * self.scale
-        self.px.set_dir_servo_angle(self.angle)
+        # self.angle = loc * self.scale
+        self.px.set_dir_servo_angle(self.scale * loc)
         logging.debug(f"Turn Angle {self.angle}")
         self.px.forward(self.steady_engine)
-        # time.sleep(1)
+    
+    def controller_consumer(self, delay):                                                                                                                                                                                                    
+        while(1):
+            angle = self.inter_bus.read()
+            self.control_loop(angle)
+            time.sleep(delay)
+
+
+#####################################################################################
+class Bus():
+    def __init__(self):
+        self.message = None
+        self.lock = rwlock.RWLockWriteD()
+
+    def write(self, msg):
+        with self.lock.gen_wlock():
+            self.message = msg
+    
+    def read(self):
+        with self.lock.gen_rlock():
+            return self.message
 
 
 if __name__ == "__main__":
     # From Week 1
     # run()
     # From week 3
+    # line = input("Enter 1 if looking for a light line and 2 for a dark ")
+    # if line == '1':
+    #     polar = True
+    # else:
+    #     polar = False
+    # sensitivity = float(input("Enter sensitivity value (0.3 is default) "))
+    # scale = float(input("Enter scaling value (default is 40) "))
+    # init_engine = float(input("Enter initial engine speed (50 is default) "))
+    # steady_engine = float(input("Enter steady engine speed (25 is default) "))
+    # inp = input("Enter 1 for greyscale test, 2 for controller test, and 3 to quit ")
+
+    # s = Sensing()
+    # c = Controller(Picarx(), steady_engine, scaling_factor=scale, sensitivity=sensitivity, polarity=polar, start_engine=init_engine)
+    # while(1):
+    #     if inp == '1':
+    #         print(s.read())
+    #     elif inp == '2':
+    #         c.control_loop()
+    #     elif inp == '3':
+    #         break
+
+    # Week 4
     line = input("Enter 1 if looking for a light line and 2 for a dark ")
     if line == '1':
         polar = True
     else:
         polar = False
-    sensitivity = float(input("Enter sensitivity value (0.1 is default) "))
-    scale = float(input("Enter scaling value (default is 30) "))
+    sensitivity = float(input("Enter sensitivity value (0.3 is default) "))
+    scale = float(input("Enter scaling value (default is 40) "))
     init_engine = float(input("Enter initial engine speed (50 is default) "))
-    steady_engine = float(input("Enter steady engine speed (30 is default) "))
+    steady_engine = float(input("Enter steady engine speed (25 is default) "))
     inp = input("Enter 1 for greyscale test, 2 for controller test, and 3 to quit ")
 
-    s = Sensing()
-    c = Controller(Picarx(), steady_engine, scaling_factor=scale, sensitivity=sensitivity, polarity=polar, start_engine=init_engine)
-    while(1):
-        if inp == '1':
-            print(s.read())
-        elif inp == '2':
-            c.control_loop()
-        elif inp == '3':
-            break
+    sensor_bus = Bus()
+    sensor = Sensing(sensor_bus)
+    
+    inter_bus = Bus()
+    inter = Interpreter(inter_bus=inter_bus)
+    
+    cont = Controller(Picarx(), steady_engine, scaling_factor=scale, sensitivity=sensitivity, polarity=polar, start_engine=init_engine, inter_bus=inter_bus)
+    
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
+        # eSensor = executor.submit(sensor_function, sensor_values_bus, sensor_delay)
+        eSensor = executor.submit(sensor.sensing_producer(0.1), sensor_bus, 0.1)
+        eInterpreter = executor.submit(inter.interpreter_consumer_producer(0.1), sensor_bus, inter_bus, 0.1)
+        eController = executor.submit(cont.controller_consumer(0.1), inter_bus, 0.1)
+    eSensor.result()
+    eInterpreter.result()
+    eController.result()
             
