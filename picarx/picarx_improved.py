@@ -396,7 +396,7 @@ class Sensing():
 class Interpreter():
     # Sensitivity is how different light and dark values should be.
     # Polarity is asking the line we are following lighter or darker than surrounding floor (True means lighter)
-    def __init__(self, sensitivity=30, polarity=True):
+    def __init__(self, sensitivity=.30, polarity=True):
         self.sensitivity = sensitivity
         self.polar = polarity
         self.FAR_LEFT = 1
@@ -569,7 +569,7 @@ if __name__ == "__main__":
     sensor = Sensing()
     
     inter_bus = Bus()
-    inter = Interpreter()
+    inter = Interpreter(sensitivity=sensitivity, polarity=polar)
     
     cont = Controller(Picarx(), steady_engine, scaling_factor=scale, sensitivity=sensitivity, polarity=polar, start_engine=init_engine)
     
