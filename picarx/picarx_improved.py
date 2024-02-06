@@ -19,7 +19,7 @@ from readerwriterlock import rwlock
 
 logging_format = "%(asctime)s: %(message)s"
 logging.basicConfig(format=logging_format, level=logging.INFO,datefmt="%H:%M:%S")
-# logging.getLogger().setLevel(logging.DEBUG)
+logging.getLogger().setLevel(logging.DEBUG)
 
 # reset robot_hat
 reset_mcu()
@@ -383,7 +383,7 @@ class Sensing():
     # producer
     def sensing_producer(self, bus, delay):
         while(1):
-            logging.debug("Writing to sensor bus")
+            # logging.debug("Writing to sensor bus")
             bus.write(self.read())
             time.sleep(delay)
 
@@ -461,14 +461,14 @@ class Interpreter():
                     # If the right side is darker than the left
                     else:
                         to_return = abs(norm_r - norm_m)
-        if abs(norm_l - norm_r) < self.sensitivity:
-            logging.debug("left and right grey values are too close")
-            to_return = 0
+        # if abs(norm_l - norm_r) < self.sensitivity:
+        #     logging.debug("left and right grey values are too close")
+        #     to_return = 0
         return to_return
     
     def interpreter_consumer_producer(self, sense_bus, inter_bus, delay):
         while(1):
-            logging.debug("Reading from sensor bus")
+            # logging.debug("Reading from sensor bus")
             grey_vals = sense_bus.read()
             logging.debug(f"Current Grey vals {grey_vals}")
             add_to_bus = self.find_edge(grey_vals)
@@ -503,7 +503,7 @@ class Controller():
     
     def controller_consumer(self, inter_bus, delay):                                                                                                                                                                                                    
         while(1):
-            logging.debug("Reading from interpreter bus")
+            # logging.debug("Reading from interpreter bus")
             angle = inter_bus.read()
             logging.debug(f"Angle value {angle}")
             self.control_loop(angle)
@@ -571,7 +571,7 @@ if __name__ == "__main__":
     
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
-        eSensor = executor.submit(sensor.sensing_producer, sensor_bus, 0.01)
+        eSensor = executor.submit(sensor.sensing_producer, sensor_bus, 0.1)
         eInterpreter = executor.submit(inter.interpreter_consumer_producer, sensor_bus, inter_bus, 0.1)
         eController = executor.submit(cont.controller_consumer, inter_bus, 0.1)
     eSensor.result()
