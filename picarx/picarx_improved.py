@@ -414,8 +414,9 @@ class Interpreter():
             norm = grey_vals
         else:
             norm = [v / max_val for v in grey_vals]
-            # print(f"Grey vals normalized: {norm}")
+            print(f"Grey vals normalized: {norm}")
             norm_l, norm_m, norm_r = norm
+            print(abs(norm_l - norm_m) > self.sensitivity)
 
         to_return = 0
         if abs(norm_l - norm_m) > self.sensitivity:
