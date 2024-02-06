@@ -471,6 +471,7 @@ class Interpreter():
     def interpreter_consumer_producer(self, delay):
         while(1):
             grey_vals = self.sense_bus.read()
+            logging.debug(f"Current Grey vals {grey_vals}")
             add_to_bus = self.find_edge(grey_vals)
             self.inter_bus.write(add_to_bus)
             time.sleep(delay)
@@ -558,7 +559,6 @@ if __name__ == "__main__":
     scale = float(input("Enter scaling value (default is 40) "))
     init_engine = float(input("Enter initial engine speed (50 is default) "))
     steady_engine = float(input("Enter steady engine speed (25 is default) "))
-    inp = input("Enter 1 for greyscale test, 2 for controller test, and 3 to quit ")
 
     sensor_bus = Bus()
     sensor = Sensing(sensor_bus)
