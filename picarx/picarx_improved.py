@@ -472,7 +472,7 @@ class Interpreter():
             grey_vals = sense_bus.read()
             # logging.debug(f"Current Grey vals {grey_vals}")
             add_to_bus = self.find_edge(grey_vals)
-            # logging.debug("Writing to interpreter bus")
+            logging.debug(f"Writing to interpreter bus: {add_to_bus}")
             inter_bus.write(add_to_bus)
             time.sleep(delay)
 
@@ -570,10 +570,10 @@ if __name__ == "__main__":
     cont = Controller(Picarx(), steady_engine, scaling_factor=scale, sensitivity=sensitivity, polarity=polar, start_engine=init_engine)
     
 
-    with concurrent.futures.ThreadPoolExecutor(max_workers=20) as executor:
-        eSensor = executor.submit(sensor.sensing_producer, sensor_bus, 0.1)
-        eInterpreter = executor.submit(inter.interpreter_consumer_producer, sensor_bus, inter_bus, 0.1)
-        eController = executor.submit(cont.controller_consumer, inter_bus, 0.1)
+    with concurrent.futures.ThreadPoolExecutor(max_workers=6) as executor:
+        eSensor = executor.submit(sensor.sensing_producer, sensor_bus, 0.01)
+        eInterpreter = executor.submit(inter.interpreter_consumer_producer, sensor_bus, inter_bus, 0.01)
+        eController = executor.submit(cont.controller_consumer, inter_bus, 0.01)
     eSensor.result()
     eInterpreter.result()
     eController.result()
