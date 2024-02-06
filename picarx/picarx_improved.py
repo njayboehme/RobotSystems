@@ -461,9 +461,9 @@ class Interpreter():
                     # If the right side is darker than the left
                     else:
                         to_return = abs(norm_r - norm_m)
-        # if abs(norm_l - norm_r) < self.sensitivity:
-        #     logging.debug("left and right grey values are too close")
-        #     to_return = 0
+        if abs(norm_l - norm_r) < self.sensitivity:
+            logging.debug("left and right grey values are too close")
+            to_return = 0
         return to_return
     
     def interpreter_consumer_producer(self, sense_bus, inter_bus, delay):
@@ -472,7 +472,7 @@ class Interpreter():
             grey_vals = sense_bus.read()
             # logging.debug(f"Current Grey vals {grey_vals}")
             add_to_bus = self.find_edge(grey_vals)
-            logging.debug(f"Writing to interpreter bus: {add_to_bus}")
+            # logging.debug(f"Writing to interpreter bus: {add_to_bus}")
             inter_bus.write(add_to_bus)
             time.sleep(delay)
 
@@ -505,7 +505,7 @@ class Controller():
         while(1):
             # logging.debug("Reading from interpreter bus")
             angle = inter_bus.read()
-            logging.debug(f"Angle value {angle}")
+            # logging.debug(f"Angle value {angle}")
             self.control_loop(angle)
             time.sleep(delay)
 
