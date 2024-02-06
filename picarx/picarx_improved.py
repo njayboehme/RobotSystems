@@ -570,7 +570,7 @@ if __name__ == "__main__":
     cont = Controller(Picarx(), steady_engine, scaling_factor=scale, sensitivity=sensitivity, polarity=polar, start_engine=init_engine)
     
 
-    with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=20) as executor:
         eSensor = executor.submit(sensor.sensing_producer, sensor_bus, 0.1)
         eInterpreter = executor.submit(inter.interpreter_consumer_producer, sensor_bus, inter_bus, 0.1)
         eController = executor.submit(cont.controller_consumer, inter_bus, 0.1)
