@@ -501,6 +501,7 @@ class Controller():
     def controller_consumer(self, inter_bus, delay):                                                                                                                                                                                                    
         while(1):
             angle = inter_bus.read()
+            logging.debug(f"Angle value {angle}")
             self.control_loop(angle)
             time.sleep(delay)
 
@@ -566,7 +567,7 @@ if __name__ == "__main__":
     
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
-        eSensor = executor.submit(sensor.sensing_producer, sensor_bus, 0.1)
+        eSensor = executor.submit(sensor.sensing_producer, sensor_bus, 0.01)
         eInterpreter = executor.submit(inter.interpreter_consumer_producer, sensor_bus, inter_bus, 0.1)
         eController = executor.submit(cont.controller_consumer, inter_bus, 0.1)
     eSensor.result()
