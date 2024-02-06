@@ -463,7 +463,8 @@ class Interpreter():
                     else:
                         to_return = abs(norm_r - norm_m)
         if abs(norm_l - norm_r) < self.sensitivity:
-            logging.debug("left and right grey values are too close")
+            #logging.debug("left and right grey values are too close")
+            logging.debug(str(norm_l) + ' ' + str(norm_r) + ' ' + str(self.sensitivity)+'\n')
             to_return = 0
         return to_return
     
