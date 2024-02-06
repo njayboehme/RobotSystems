@@ -474,7 +474,7 @@ class Interpreter():
             grey_vals = sense_bus.read()
             # logging.debug(f"Current Grey vals {grey_vals}")
             add_to_bus = self.find_edge(grey_vals)
-            # logging.debug(f"Writing to interpreter bus: {add_to_bus}")
+            logging.debug(f"Writing to interpreter bus: {add_to_bus}")
             inter_bus.write(add_to_bus)
             time.sleep(delay)
 
@@ -507,7 +507,7 @@ class Controller():
         while(1):
             # logging.debug("Reading from interpreter bus")
             angle = inter_bus.read()
-            # logging.debug(f"Angle value {angle}")
+            logging.debug(f"Angle value {angle}")
             # self.control_loop(angle)
             self.px.set_dir_servo_angle(self.scale * angle)
             self.px.forward(self.steady_engine)
@@ -571,6 +571,7 @@ if __name__ == "__main__":
     inter_bus = Bus()
     inter = Interpreter(sensitivity=sensitivity, polarity=polar)
     
+
     cont = Controller(Picarx(), steady_engine, scaling_factor=scale, sensitivity=sensitivity, polarity=polar, start_engine=init_engine)
     
 
