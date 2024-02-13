@@ -467,7 +467,9 @@ class Ultra_Interpreter():
 
     def find_obstacle(self, dist):
         logging.debug(f"In ultra interpreter: Got {dist}")
-        if dist < self.thresh:
+        if dist == -1:
+            return 1
+        elif dist < self.thresh:
             logging.debug("Close object detected")
             # stop the car
             return 0
