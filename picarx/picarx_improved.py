@@ -374,11 +374,12 @@ def run():
 
 #####################################################################
 class Grey_Sensing():
-    def __init__(self, grey_bus, delay):
+    def __init__(self):
         self.greyscale = Grayscale_Module(ADC('A0'), ADC('A1'), ADC('A2'), reference=None)
         
 
     def read(self):
+        print('in Grey_Sensing read()')
         return self.greyscale.read()
     
     def run_producer(self):
@@ -386,9 +387,8 @@ class Grey_Sensing():
 
 
 class Ultra_Sensing():
-    def __init__(self, ultra_sensor_bus, delay):
+    def __init__(self):
         self.ultra = Ultrasonic(Pin('D2'), Pin('D3'))
-        self.ultra_prod = rossros.Producer(self.read, ultra_sensor_bus, delay=delay, name="Ultra Sensing")
 
     def read(self):
         return self.ultra.read()
@@ -402,7 +402,7 @@ class Ultra_Sensing():
 class Grey_Interpreter():
     # Sensitivity is how different light and dark values should be.
     # Polarity is asking the line we are following lighter or darker than surrounding floor (True means lighter)
-    def __init__(self, grey_sensor_bus, grey_inter_bus, delay, sensitivity=.30, polarity=True):
+    def __init__(self, sensitivity=.30, polarity=True):
         self.sensitivity = sensitivity
         self.polar = polarity
         
@@ -473,8 +473,7 @@ class Grey_Interpreter():
 
 
 class Ultra_Interpreter():
-    def __init__(self, ultra_sensor_bus, ultra_inter_bus, delay, thresh=10):
-        self.ultra_cons_prod = rossros.ConsumerProducer(self.find_obstacle, ultra_sensor_bus, ultra_inter_bus, delay=delay, name="Ultra Interpreter")
+    def __init__(self, thresh=10):
         self.thresh = thresh
 
     def find_obstacle(self, ultra_sensor_bus):
@@ -497,7 +496,7 @@ class Ultra_Interpreter():
 ####################################################################
 class Controller():
 
-    def __init__(self, px, steady_engine, grey_inter_bus, ultra_inter_bus, delay, scaling_factor=40, start_engine=50):
+    def __init__(self, px, steady_engine, scaling_factor=40, start_engine=50):
         self.scale = scaling_factor
         self.steady_engine = steady_engine
         self.angle = 0
@@ -505,7 +504,6 @@ class Controller():
         # Just get the car going for a bit
         self.px.forward(start_engine)
         time.sleep(0.01)
-        self.cont_cons = rossros.Consumer(self.control_loop, (grey_inter_bus, ultra_inter_bus), delay=delay, name="Controller")
 
     def control_loop(self, grey_inter_bus, ultra_inter_bus):
         angle = grey_inter_bus.get_message()
@@ -541,24 +539,32 @@ if __name__ == "__main__":
 
     # Setup busses and such
     grey_sensor_bus = rossros.Bus()
-    grey_sensor = Grey_Sensing(grey_sensor_bus, grey_sensor_delay)
+    grey_sensor = Grey_Sensing()
     ultra_sensor_bus = rossros.Bus()
-    ultra_sensor = Ultra_Sensing(ultra_sensor_bus, ultra_sensor_delay)
+    ultra_sensor = Ultra_Sensing()
 
     grey_inter_bus = rossros.Bus()
-    grey_interpreter = Grey_Interpreter(grey_sensor_bus, grey_inter_bus, grey_inter_delay, sensitivity=sensitivity, polarity=polarity)
+    grey_interpreter = Grey_Interpreter(sensitivity=sensitivity, polarity=polarity)
     ultra_inter_bus = rossros.Bus()
-    ultra_interpreter = Ultra_Interpreter(ultra_sensor_bus, ultra_inter_bus, ultra_inter_delay, thresh=threshold)
+    ultra_interpreter = Ultra_Interpreter(thresh=threshold)
 
-    cont = Controller(Picarx(), steady_engine=25, grey_inter_bus=grey_inter_bus, ultra_inter_bus=ultra_inter_bus,
-                       delay=cont_delay, scaling_factor=scale, start_engine=50)
+    cont = Controller(Picarx(), steady_engine=25, scaling_factor=scale, start_engine=50)
     
 
     grey_sense_prod = rossros.Producer(grey_sensor.read, grey_sensor_bus, delay=grey_sensor_delay, name="Grey Sensing")
 
     grey_cons_prod = rossros.ConsumerProducer(grey_interpreter.find_edge, grey_sensor_bus, grey_inter_bus, delay=grey_inter_delay, name="Grey Interpreter")
 
+
+
+    ultra_sense_prod = rossros.Producer(ultra_sensor.read, ultra_sensor_bus, delay=ultra_sensor_delay, name="Ultra Sensing")
+
+    ultra_cons_prod = rossros.ConsumerProducer(ultra_interpreter.find_obstacle, ultra_sensor_bus, ultra_inter_bus, delay=ultra_inter_delay, name="Ultra Interpreter")
+
+
+    cont_cons = rossros.Consumer(cont.control_loop, (grey_inter_bus, ultra_inter_bus), delay=cont_delay, name="Controller")
+
     # Run
-    cons_prod_list = [grey_sense_prod]
+    cons_prod_list = [grey_sense_prod, grey_cons_prod]
     rossros.runConcurrently(cons_prod_list)
             
