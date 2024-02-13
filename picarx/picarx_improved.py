@@ -502,7 +502,7 @@ class Controller():
         self.px.forward(start_engine)
         time.sleep(0.01)
 
-    def control_loop(self, angle, motor_scale):
+    def control_loop(self, angle, motor_scale=1):
         logging.debug(f"In control loop: Got angle {angle} and ultra {motor_scale}")
         self.px.set_dir_servo_angle(self.scale * angle)
         self.px.forward(self.steady_engine * motor_scale)
@@ -560,6 +560,6 @@ if __name__ == "__main__":
     cont_cons = rossros.Consumer(cont.control_loop, (grey_inter_bus, ultra_inter_bus), delay=cont_delay, name="Controller")
 
     # Run
-    cons_prod_list = [grey_sense_prod, grey_cons_prod, cont_cons]
+    cons_prod_list = [ultra_sense_prod, ultra_cons_prod]
     rossros.runConcurrently(cons_prod_list)
             
