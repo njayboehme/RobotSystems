@@ -408,6 +408,7 @@ class Grey_Interpreter():
     
     def find_edge(self, grey_sensor_bus):
         grey_vals = grey_sensor_bus.get_message()
+        print("in find_edge ", grey_vals)
         edge_detected = False
         max_val = max(grey_vals)
         if sum(grey_vals) == 0:
