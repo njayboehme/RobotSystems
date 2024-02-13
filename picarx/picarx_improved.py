@@ -380,9 +380,6 @@ class Grey_Sensing():
 
     def read(self):
         return self.greyscale.read()
-    
-    def run_producer(self):
-        self.grey_prod()
 
 
 class Ultra_Sensing():
@@ -391,9 +388,6 @@ class Ultra_Sensing():
 
     def read(self):
         return self.ultra.read()
-    
-    def run_producer(self):
-        self.ultra_prod()
     
 
 
@@ -465,9 +459,6 @@ class Grey_Interpreter():
             logging.debug("left and right grey values are too close")
             to_return = 0
         return to_return
-    
-    def run_cons_prod(self):
-        self.grey_cons_prod()
 
 
 class Ultra_Interpreter():
@@ -476,6 +467,7 @@ class Ultra_Interpreter():
 
     def find_obstacle(self, dist):
         logging.debug(f"In ultra interpreter: Got {dist}")
+        print(type(dist))
         if dist < self.thresh:
             logging.debug("Close object detected")
             # stop the car
@@ -484,9 +476,6 @@ class Ultra_Interpreter():
             logging.debug("No object detected")
             # don't stop the car
             return 1
-
-    def run_cons_prod(self):
-        self.ultra_cons_prod()
 
 
 
@@ -506,9 +495,6 @@ class Controller():
         logging.debug(f"In control loop: Got angle {angle} and ultra {motor_scale}")
         self.px.set_dir_servo_angle(self.scale * angle)
         self.px.forward(self.steady_engine * motor_scale)
-        
-    def run_consumer(self):
-        self.cont_cons()
 
 
 #####################################################################################
