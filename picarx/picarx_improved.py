@@ -509,8 +509,8 @@ if __name__ == "__main__":
         polarity = True
     else:
         polarity = False
-    threshold = input('Enter the threshold value for the ultrasound sensor ')
-    scale = input('Enter the scaling factor for the turn angle (default is 40) ')
+    threshold = float(input('Enter the threshold value for the ultrasound sensor '))
+    scale = float(input('Enter the scaling factor for the turn angle (default is 40) '))
 
     grey_sensor_delay = float(input('Enter the delay for the greyscale sensor '))
     ultra_sensor_delay = float(input('Enter the delay for the ultrasonic sensor '))
