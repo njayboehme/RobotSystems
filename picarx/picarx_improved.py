@@ -13,6 +13,7 @@ import logging
 import atexit
 import concurrent.futures
 import sys
+import rossros
 
 print(sys.executable)
 from readerwriterlock import rwlock
@@ -372,59 +373,59 @@ def run():
 
 
 #####################################################################
-class Sensing():
-    def __init__(self):
-        self.gray_scale_vals = [ADC('A0'), ADC('A1'), ADC('A2')]
+class Grey_Sensing():
+    def __init__(self, grey_bus, delay):
         self.greyscale = Grayscale_Module(ADC('A0'), ADC('A1'), ADC('A2'), reference=None)
+        self.grey_prod = rossros.Producer(self.read, grey_bus, delay=delay)
 
     def read(self):
         return self.greyscale.read()
     
-    # producer
-    def sensing_producer(self, bus, delay):
-        while(1):
-            # logging.debug("Writing to sensor bus")
-            bus.write(self.read())
-            time.sleep(delay)
+    def run_producer(self):
+        self.grey_prod()
 
-    def test(self):
-        while(input("break out of loop with 1: ") != '1'):
-            print(self.read())
+
+class Ultra_Sensing():
+    def __init__(self, ultra_sensor_bus, delay):
+        self.ultra = Ultrasonic(Pin('D2'), Pin('D3'))
+        self.ultra_prod = rossros.Producer(self.read, ultra_sensor_bus, delay=delay)
+
+    def read(self):
+        return self.ultra.read()
+    
+    def run_producer(self):
+        self.ultra_prod()
+    
 
 
 #####################################################################
-class Interpreter():
+class Grey_Interpreter():
     # Sensitivity is how different light and dark values should be.
     # Polarity is asking the line we are following lighter or darker than surrounding floor (True means lighter)
-    def __init__(self, sensitivity=.30, polarity=True):
+    def __init__(self, grey_sensor_bus, grey_inter_bus, delay, sensitivity=.30, polarity=True):
         self.sensitivity = sensitivity
         self.polar = polarity
-        self.FAR_LEFT = 1
-        self.MID_LEFT = 0.5
-        self.CENTER = 0.0
-        self.MID_RIGHT = -0.5
-        self.FAR_RIGHT = -1.0
+        self.grey_cons_prod = rossros.ConsumerProducer(self.find_edge, grey_sensor_bus, grey_inter_bus, delay=delay)
     
-    # Light is the higher value (~1000). Dark is the lower value (~30)
-    def find_edge(self, grey_vals):
-        # TODO: Need to do some normalization
+    def find_edge(self, grey_sensor_bus):
+        grey_vals = grey_sensor_bus.get_message()
         edge_detected = False
         max_val = max(grey_vals)
         if sum(grey_vals) == 0:
             norm = grey_vals
         else:
             norm = [v / max_val for v in grey_vals]
-            # print(f"Grey vals normalized: {norm}")
+            logging.debug(f"Normalized vals {norm}")
             norm_l, norm_m, norm_r = norm
             print(abs(norm_l - norm_m) > self.sensitivity)
 
         to_return = 0
         if abs(norm_l - norm_m) > self.sensitivity:
             edge_detected = True
-            # logging.debug("Difference in left")
+            logging.debug("Difference in left")
             # Looking for a light line
             if self.polar:
-                # logging.debug("Looking for light line")
+                logging.debug("Looking for light line")
                 # If the left sensor is on the light line
                 if norm_l - norm_m > 0:
                     to_return = -(norm_l - norm_m) # This should be negative because the car needs to turn left, which is a - angle
@@ -433,7 +434,7 @@ class Interpreter():
                     to_return = 0
             # Looking for a dark line
             else:
-                # logging.debug("Looking for dark line")
+                logging.debug("Looking for dark line")
                 # If the middle sensor is on the dark line, don't change
                 if norm_l - norm_m > 0:
                     to_return = 0
@@ -443,10 +444,10 @@ class Interpreter():
         # If we haven't detected an edge yet or if we have detected an edge and the right edge is further away from the middle
         if not edge_detected or (edge_detected and (norm_r - norm_m) > (norm_l - norm_m)):
             if abs(norm_r - norm_m) > self.sensitivity:
-                # logging.debug("Difference in right")
+                logging.debug("Difference in right")
                 # Looking for a light line
                 if self.polar:
-                    # logging.debug("Looking for light line")
+                    logging.debug("Looking for light line")
                     # If the right is on the light line
                     if norm_r - norm_m > 0:
                         to_return = norm_r - norm_m
@@ -455,7 +456,7 @@ class Interpreter():
                         to_return = 0
                 # Looking for a dark line
                 else:
-                    # logging.debug("Looking for dark line")
+                    logging.debug("Looking for dark line")
                     # If the right is lighter than the middle, i.e. middle is on the line, do nothing
                     if norm_r - norm_m > 0:
                         to_return = 0
@@ -463,123 +464,94 @@ class Interpreter():
                     else:
                         to_return = abs(norm_r - norm_m)
         if abs(norm_l - norm_r) < self.sensitivity:
-            #logging.debug("left and right grey values are too close")
+            logging.debug("left and right grey values are too close")
             to_return = 0
         return to_return
     
-    def interpreter_consumer_producer(self, sense_bus, inter_bus, delay):
-        while(1):
-            # logging.debug("Reading from sensor bus")
-            grey_vals = sense_bus.read()
-            # logging.debug(f"Current Grey vals {grey_vals}")
-            add_to_bus = self.find_edge(grey_vals)
-            # logging.debug(f"Writing to interpreter bus: {add_to_bus}")
-            inter_bus.write(add_to_bus)
-            time.sleep(delay)
+    def run_cons_prod(self):
+        self.grey_cons_prod()
+
+
+class Ultra_Interpreter():
+    def __init__(self, ultra_sensor_bus, ultra_inter_bus, delay, thresh=10):
+        self.ultra_cons_prod = rossros.ConsumerProducer(self.find_obstacle, ultra_sensor_bus, ultra_inter_bus, delay=delay)
+        self.thresh = thresh
+
+    def find_obstacle(self, ultra_sensor_bus):
+        val = ultra_sensor_bus.get_message()
+        if val < self.thresh:
+            logging.debug("Close object detected")
+            # stop the car
+            return 0
+        else:
+            logging.debug("No object detected")
+            # don't stop the car
+            return 1
+
+    def run_cons_prod(self):
+        self.ultra_cons_prod()
 
 
 
 ####################################################################
 class Controller():
 
-    def __init__(self, px, steady_engine, scaling_factor=30, sensitivity=0.1, polarity=True, start_engine=50):
+    def __init__(self, px, steady_engine, grey_inter_bus, ultra_inter_bus, delay, scaling_factor=40, start_engine=50):
         self.scale = scaling_factor
         self.steady_engine = steady_engine
         self.angle = 0
         self.px = px
-        self.interpreter = Interpreter(sensitivity, polarity)
-        self.sensor = Sensing()
+        # Just get the car going for a bit
         self.px.forward(start_engine)
         time.sleep(0.1)
+        self.cont_cons = rossros.Consumer(self.control_loop, (grey_inter_bus, ultra_inter_bus), delay=delay)
 
-    def control_loop(self, loc):
-        # grey_vals = self.sensor.read()
-        # print(f"Grey vals: {grey_vals}")
-        # loc = self.interpreter.find_edge(grey_vals)
-        # This will adjust the interpreter's value to an angle between -scale and scale
-        # self.angle = loc * self.scale
-        self.px.set_dir_servo_angle(self.scale * loc)
-        # logging.debug(f"Turn Angle {self.angle}")
-        self.px.forward(self.steady_engine)
-    
-    def controller_consumer(self, inter_bus, delay):                                                                                                                                                                                                    
-        while(1):
-            # logging.debug("Reading from interpreter bus")
-            angle = inter_bus.read()
-            # logging.debug(f"Angle value {angle}")
-            # self.control_loop(angle)
-            self.px.set_dir_servo_angle(self.scale * angle)
-            self.px.forward(self.steady_engine)
-            time.sleep(delay)
+    def control_loop(self, grey_inter_bus, ultra_inter_bus):
+        angle = grey_inter_bus.get_message()
+        motor_scale = ultra_inter_bus.get_message()
+        self.px.set_dir_servo_angle(self.scale * angle)
+        self.px.forward(self.steady_engine * motor_scale)
+        
+    def run_consumer(self):
+        self.cont_cons()
 
 
 #####################################################################################
-class Bus():
-    def __init__(self):
-        self.message = 0
-        self.lock = rwlock.RWLockWriteD()
-
-    def write(self, msg):
-        with self.lock.gen_wlock():
-            self.message = msg
-    
-    def read(self):
-        with self.lock.gen_rlock():
-            return self.message
 
 
 if __name__ == "__main__":
-    # From Week 1
-    # run()
-    # From week 3
-    # line = input("Enter 1 if looking for a light line and 2 for a dark ")
-    # if line == '1':
-    #     polar = True
-    # else:
-    #     polar = False
-    # sensitivity = float(input("Enter sensitivity value (0.3 is default) "))
-    # scale = float(input("Enter scaling value (default is 40) "))
-    # init_engine = float(input("Enter initial engine speed (50 is default) "))
-    # steady_engine = float(input("Enter steady engine speed (25 is default) "))
-    # inp = input("Enter 1 for greyscale test, 2 for controller test, and 3 to quit ")
-
-    # s = Sensing()
-    # c = Controller(Picarx(), steady_engine, scaling_factor=scale, sensitivity=sensitivity, polarity=polar, start_engine=init_engine)
-    # while(1):
-    #     if inp == '1':
-    #         print(s.read())
-    #     elif inp == '2':
-    #         c.control_loop()
-    #     elif inp == '3':
-    #         break
-
-    # Week 4
-    line = input("Enter 1 if looking for a light line and 2 for a dark ")
-    if line == '1':
-        polar = True
+    # Week 5
+    # Get inputs (sensitivity, polarity, threshold, scale)
+    sensitivity = float(input('Enter the sensitivity (default is 0.3) '))
+    polarity = input('Enter 1 for a white line and 2 for a dark line ')
+    if polarity == '1':
+        polarity = True
     else:
-        polar = False
-    sensitivity = float(input("Enter sensitivity value (0.3 is default) "))
-    scale = float(input("Enter scaling value (default is 40) "))
-    init_engine = float(input("Enter initial engine speed (50 is default) "))
-    steady_engine = float(input("Enter steady engine speed (25 is default) "))
+        polarity = False
+    threshold = input('Enter the threshold value for the ultrasound sensor ')
+    scale = input('Enter the scaling factor for the turn angle (default is 40)')
 
-    sensor_bus = Bus()
-    sensor = Sensing()
-    
-    inter_bus = Bus()
-    inter = Interpreter(sensitivity=sensitivity, polarity=polar)
-    
+    grey_sensor_delay = float(input('Enter the delay for the greyscale sensor '))
+    ultra_sensor_delay = float(input('Enter the delay for the ultrasonic sensor '))
+    grey_inter_delay = float(input('Enter the delay for the greyscale interpreter '))
+    ultra_inter_delay = float(input('Enter the delay for the ultrasonic interpreter '))
+    cont_delay = float(input('Enter the delay for the controller '))
 
-    cont = Controller(Picarx(), steady_engine, scaling_factor=scale, sensitivity=sensitivity, polarity=polar, start_engine=init_engine)
-    
+    # Setup busses and such
+    grey_sensor_bus = rossros.Bus()
+    grey_sensor = Grey_Sensing(grey_sensor_bus, grey_sensor_delay)
+    ultra_sensor_bus = rossros.Bus()
+    ultra_sensor = Ultra_Sensing(ultra_sensor_bus, ultra_sensor_delay)
 
-    with concurrent.futures.ThreadPoolExecutor(max_workers=63) as executor:
-        eSensor = executor.submit(sensor.sensing_producer, sensor_bus, 0.1)
-        eInterpreter = executor.submit(inter.interpreter_consumer_producer, sensor_bus, inter_bus, 0.2)
-        eController = executor.submit(cont.controller_consumer, inter_bus, 0.3)
-    
-    eSensor.result()
-    eInterpreter.result()
-    eController.result()
+    grey_inter_bus = rossros.Bus()
+    grey_interpreter = Grey_Interpreter(grey_sensor_bus, grey_inter_bus, grey_inter_delay, sensitivity=sensitivity, polarity=polarity)
+    ultra_inter_bus = rossros.Bus()
+    ultra_interpreter = Ultra_Interpreter(ultra_sensor_bus, ultra_inter_bus, ultra_inter_delay, thresh=threshold)
+
+    cont = Controller(Picarx(), steady_engine=25, grey_inter_bus=grey_inter_bus, ultra_inter_bus=ultra_inter_bus,
+                       delay=cont_delay, scaling_factor=scale, start_engine=50)
+
+    # Run
+    cons_prod_list = [grey_sensor.grey_prod, ultra_sensor.ultra_prod, grey_interpreter.grey_cons_prod, ultra_interpreter.ultra_cons_prod, cont.cont_cons]
+    rossros.runConcurrently(cons_prod_list)
             
