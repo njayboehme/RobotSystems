@@ -479,6 +479,7 @@ class Ultra_Interpreter():
 
     def find_obstacle(self, ultra_sensor_bus):
         val = ultra_sensor_bus.get_message()
+        logging.debug(f"In ultra interpreter: Got {val}")
         if val < self.thresh:
             logging.debug("Close object detected")
             # stop the car
@@ -503,12 +504,13 @@ class Controller():
         self.px = px
         # Just get the car going for a bit
         self.px.forward(start_engine)
-        time.sleep(0.1)
+        time.sleep(0.01)
         self.cont_cons = rossros.Consumer(self.control_loop, (grey_inter_bus, ultra_inter_bus), delay=delay)
 
     def control_loop(self, grey_inter_bus, ultra_inter_bus):
         angle = grey_inter_bus.get_message()
         motor_scale = ultra_inter_bus.get_message()
+        logging.debug(f"In control loop: Got angle {angle} and ultra {motor_scale}")
         self.px.set_dir_servo_angle(self.scale * angle)
         self.px.forward(self.steady_engine * motor_scale)
         
@@ -529,7 +531,7 @@ if __name__ == "__main__":
     else:
         polarity = False
     threshold = input('Enter the threshold value for the ultrasound sensor ')
-    scale = input('Enter the scaling factor for the turn angle (default is 40)')
+    scale = input('Enter the scaling factor for the turn angle (default is 40) ')
 
     grey_sensor_delay = float(input('Enter the delay for the greyscale sensor '))
     ultra_sensor_delay = float(input('Enter the delay for the ultrasonic sensor '))
