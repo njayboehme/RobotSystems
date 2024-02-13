@@ -462,12 +462,11 @@ class Grey_Interpreter():
 
 
 class Ultra_Interpreter():
-    def __init__(self, thresh=10):
+    def __init__(self, thresh=15):
         self.thresh = thresh
 
     def find_obstacle(self, dist):
         logging.debug(f"In ultra interpreter: Got {dist}")
-        print(type(dist))
         if dist < self.thresh:
             logging.debug("Close object detected")
             # stop the car
@@ -509,7 +508,7 @@ if __name__ == "__main__":
         polarity = True
     else:
         polarity = False
-    threshold = float(input('Enter the threshold value for the ultrasound sensor '))
+    threshold = float(input('Enter the threshold value for the ultrasound sensor (default is 15)'))
     scale = float(input('Enter the scaling factor for the turn angle (default is 40) '))
 
     grey_sensor_delay = float(input('Enter the delay for the greyscale sensor '))
@@ -546,6 +545,6 @@ if __name__ == "__main__":
     cont_cons = rossros.Consumer(cont.control_loop, (grey_inter_bus, ultra_inter_bus), delay=cont_delay, name="Controller")
 
     # Run
-    cons_prod_list = [ultra_sense_prod, ultra_cons_prod]
+    cons_prod_list = [grey_sense_prod, ultra_sense_prod, grey_cons_prod, ultra_cons_prod, cont_cons]
     rossros.runConcurrently(cons_prod_list)
             
