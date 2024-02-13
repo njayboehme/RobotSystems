@@ -379,7 +379,6 @@ class Grey_Sensing():
         
 
     def read(self):
-        print('in Grey_Sensing read()')
         return self.greyscale.read()
     
     def run_producer(self):
