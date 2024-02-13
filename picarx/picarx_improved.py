@@ -376,7 +376,7 @@ def run():
 class Grey_Sensing():
     def __init__(self, grey_bus, delay):
         self.greyscale = Grayscale_Module(ADC('A0'), ADC('A1'), ADC('A2'), reference=None)
-        self.grey_prod = rossros.Producer(self.read, grey_bus, delay=delay)
+        self.grey_prod = rossros.Producer(self.read, grey_bus, delay=delay, name="Grey Sensing")
 
     def read(self):
         return self.greyscale.read()
@@ -388,7 +388,7 @@ class Grey_Sensing():
 class Ultra_Sensing():
     def __init__(self, ultra_sensor_bus, delay):
         self.ultra = Ultrasonic(Pin('D2'), Pin('D3'))
-        self.ultra_prod = rossros.Producer(self.read, ultra_sensor_bus, delay=delay)
+        self.ultra_prod = rossros.Producer(self.read, ultra_sensor_bus, delay=delay, name="Ultra Sensing")
 
     def read(self):
         return self.ultra.read()
@@ -405,7 +405,7 @@ class Grey_Interpreter():
     def __init__(self, grey_sensor_bus, grey_inter_bus, delay, sensitivity=.30, polarity=True):
         self.sensitivity = sensitivity
         self.polar = polarity
-        self.grey_cons_prod = rossros.ConsumerProducer(self.find_edge, grey_sensor_bus, grey_inter_bus, delay=delay)
+        self.grey_cons_prod = rossros.ConsumerProducer(self.find_edge, grey_sensor_bus, grey_inter_bus, delay=delay, name="Grey Interpreter")
     
     def find_edge(self, grey_sensor_bus):
         grey_vals = grey_sensor_bus.get_message()
@@ -474,7 +474,7 @@ class Grey_Interpreter():
 
 class Ultra_Interpreter():
     def __init__(self, ultra_sensor_bus, ultra_inter_bus, delay, thresh=10):
-        self.ultra_cons_prod = rossros.ConsumerProducer(self.find_obstacle, ultra_sensor_bus, ultra_inter_bus, delay=delay)
+        self.ultra_cons_prod = rossros.ConsumerProducer(self.find_obstacle, ultra_sensor_bus, ultra_inter_bus, delay=delay, name="Ultra Interpreter")
         self.thresh = thresh
 
     def find_obstacle(self, ultra_sensor_bus):
@@ -505,7 +505,7 @@ class Controller():
         # Just get the car going for a bit
         self.px.forward(start_engine)
         time.sleep(0.01)
-        self.cont_cons = rossros.Consumer(self.control_loop, (grey_inter_bus, ultra_inter_bus), delay=delay)
+        self.cont_cons = rossros.Consumer(self.control_loop, (grey_inter_bus, ultra_inter_bus), delay=delay, name="Controller")
 
     def control_loop(self, grey_inter_bus, ultra_inter_bus):
         angle = grey_inter_bus.get_message()
