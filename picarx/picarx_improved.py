@@ -407,6 +407,7 @@ class Grey_Interpreter():
         
     
     def find_edge(self, grey_sensor_bus):
+        print(grey_sensor_bus)
         grey_vals = grey_sensor_bus.get_message()
         print("in find_edge ", grey_vals)
         edge_detected = False
