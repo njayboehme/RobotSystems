@@ -406,10 +406,7 @@ class Grey_Interpreter():
         self.polar = polarity
         
     
-    def find_edge(self, grey_sensor_bus):
-        print(grey_sensor_bus)
-        grey_vals = grey_sensor_bus.get_message()
-        print("in find_edge ", grey_vals)
+    def find_edge(self, grey_vals):
         edge_detected = False
         max_val = max(grey_vals)
         if sum(grey_vals) == 0:
@@ -477,10 +474,9 @@ class Ultra_Interpreter():
     def __init__(self, thresh=10):
         self.thresh = thresh
 
-    def find_obstacle(self, ultra_sensor_bus):
-        val = ultra_sensor_bus.get_message()
-        logging.debug(f"In ultra interpreter: Got {val}")
-        if val < self.thresh:
+    def find_obstacle(self, dist):
+        logging.debug(f"In ultra interpreter: Got {dist}")
+        if dist < self.thresh:
             logging.debug("Close object detected")
             # stop the car
             return 0
@@ -506,9 +502,7 @@ class Controller():
         self.px.forward(start_engine)
         time.sleep(0.01)
 
-    def control_loop(self, grey_inter_bus, ultra_inter_bus):
-        angle = grey_inter_bus.get_message()
-        motor_scale = ultra_inter_bus.get_message()
+    def control_loop(self, angle, motor_scale):
         logging.debug(f"In control loop: Got angle {angle} and ultra {motor_scale}")
         self.px.set_dir_servo_angle(self.scale * angle)
         self.px.forward(self.steady_engine * motor_scale)
@@ -566,6 +560,6 @@ if __name__ == "__main__":
     cont_cons = rossros.Consumer(cont.control_loop, (grey_inter_bus, ultra_inter_bus), delay=cont_delay, name="Controller")
 
     # Run
-    cons_prod_list = [grey_sense_prod, grey_cons_prod]
+    cons_prod_list = [grey_sense_prod, grey_cons_prod, cont_cons]
     rossros.runConcurrently(cons_prod_list)
             
