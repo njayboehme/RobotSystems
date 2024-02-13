@@ -376,7 +376,7 @@ def run():
 class Grey_Sensing():
     def __init__(self, grey_bus, delay):
         self.greyscale = Grayscale_Module(ADC('A0'), ADC('A1'), ADC('A2'), reference=None)
-        self.grey_prod = rossros.Producer(self.read, grey_bus, delay=delay, name="Grey Sensing")
+        
 
     def read(self):
         return self.greyscale.read()
@@ -405,7 +405,7 @@ class Grey_Interpreter():
     def __init__(self, grey_sensor_bus, grey_inter_bus, delay, sensitivity=.30, polarity=True):
         self.sensitivity = sensitivity
         self.polar = polarity
-        self.grey_cons_prod = rossros.ConsumerProducer(self.find_edge, grey_sensor_bus, grey_inter_bus, delay=delay, name="Grey Interpreter")
+        
     
     def find_edge(self, grey_sensor_bus):
         grey_vals = grey_sensor_bus.get_message()
@@ -552,8 +552,13 @@ if __name__ == "__main__":
 
     cont = Controller(Picarx(), steady_engine=25, grey_inter_bus=grey_inter_bus, ultra_inter_bus=ultra_inter_bus,
                        delay=cont_delay, scaling_factor=scale, start_engine=50)
+    
+
+    grey_sense_prod = rossros.Producer(grey_sensor.read, grey_sensor_bus, delay=grey_sensor_delay, name="Grey Sensing")
+
+    grey_cons_prod = rossros.ConsumerProducer(grey_interpreter.find_edge, grey_sensor_bus, grey_inter_bus, delay=grey_inter_delay, name="Grey Interpreter")
 
     # Run
-    cons_prod_list = [grey_sensor.grey_prod, ultra_sensor.ultra_prod, grey_interpreter.grey_cons_prod, ultra_interpreter.ultra_cons_prod, cont.cont_cons]
+    cons_prod_list = [grey_sense_prod]
     rossros.runConcurrently(cons_prod_list)
             
